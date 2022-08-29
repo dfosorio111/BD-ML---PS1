@@ -44,6 +44,10 @@ browseURL("https://lectures-r.gitlab.io/big-data-202202/week-01/")
 write.csv(df2, "datafiltrada.csv")
 write.csv(df, "dataoriginal.csv")
 
+#Cargar la base
+df2 <- read.csv("datafiltrada.csv")
+
+
 ####Estadísticas descriptivas####
 
 ## summary db
@@ -60,7 +64,7 @@ head(db$sex, 100)
 stargazer(df2[c("ingtot", "age")], type = "html", title = "Estadísticas Descriptivas", out = "estdec.html")
 
 ####Gráficos####
-#Boxplot estrato vs ingreso total
+#Boxplot estrato vs ingreso total g1
 ggplot(df2, aes(x = as.factor(estrato1) , y = log(ingtot) , fill = as.factor(sex))) +
   geom_boxplot()+
   scale_fill_hue(l=60, c=80)+
@@ -74,7 +78,7 @@ ggplot(df2, aes(x = as.factor(estrato1) , y = log(ingtot) , fill = as.factor(sex
   scale_fill_manual(values = c("0" ="red" , "1"="blue"), label = c("0" ="Mujer" , "1"="Hombre"))
 
 
-#Scatter sin puntos de edad vs ingreso total
+#Scatter sin puntos de edad vs ingreso total g2
 ggplot(df2, aes(x = age, y = log(ingtot)))+
   geom_smooth(method = "loess", level = 0.95, aes(weight = fex_c))+
   ggtitle("Ingreso total según la edad")+
@@ -84,7 +88,7 @@ ggplot(df2, aes(x = age, y = log(ingtot)))+
   theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
 
 
-#Scatter edad vs impa
+#Scatter edad vs impa g3
 ggplot(df2, aes(x = age, y = log(impa)))+
   geom_smooth(method = "loess", level = 0.95, aes(weight = fex_c))+
   ggtitle("Ingreso monetario de primera actividad según la edad")+
@@ -94,7 +98,7 @@ ggplot(df2, aes(x = age, y = log(impa)))+
   theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
 
 
-#Scatter con puntos de edad vs ingreso total
+#Scatter con puntos de edad vs ingreso total b4
 ggplot(df2, aes(x = age, y = log(ingtot)))+
   geom_point()+
   geom_smooth(method = "loess", level = 0.95, aes(weight = fex_c))+
@@ -142,7 +146,7 @@ boot4 <- boot(df2, eta.fn_4, R = 1000)
 df2 <- df2%>%mutate(inglabo_hat = exp(boot4$t0[1]+boot4$t0[2]*age+boot4$t0[3]*age2)-1)
 df2 <- df2%>%mutate(inglabo_hat_nolog = boot3$t0[1]+boot3$t0[2]*age+boot3$t0[3]*age2)
 
-#Gráfico solo con valores predichos
+#Gráfico solo con valores predichos g5
 ggplot(df2, aes(x = age, y = log(inglabo_hat)))+
   geom_point()+
   geom_smooth(method = "loess", level = 0.95, aes(weight = fex_c))+
@@ -152,7 +156,7 @@ ggplot(df2, aes(x = age, y = log(inglabo_hat)))+
   theme_classic()+
   theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
 
-#Gráfico con ambos
+#Gráfico con ambos g6
 ggplot(data = df2)+
   geom_point(mapping = aes(x = age, y = log(inglabo)), color = "blue")+
   geom_point(mapping = aes(x = age, y = log(inglabo_hat)), color = "red")+
@@ -163,7 +167,7 @@ ggplot(data = df2)+
   theme_classic()+
   theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
 
-#Gráfico sin logaritmos
+#Gráfico sin logaritmos g7
 ggplot(data = df2)+
   geom_point(mapping = aes(x = age, y = (inglabo)), color = "blue")+
   geom_point(mapping = aes(x = age, y = (inglabo_hat)), color = "red")+
@@ -192,4 +196,37 @@ age_peak_max_nolog <- -((boot3$t0[2]+ qnorm(alpha/2)*output_tab[2,2])/(2*(boot3$
 #Crear la variable female
 df2 <- df2%>%mutate(female = 1-sex)
 
-#Probando si sirve
+p3m1 <- lm(data = df2, log(ingtot+1) ~ female, weights = fex_c)
+summary(p3m1)
+
+p3m2 <- lm(data = df2%>%subset(ingtot > 0), log(ingtot) ~ female, weights = fex_c)
+summary(p3m2)
+
+
+#Age earnings by gender
+p3m3 <- lm(data = df2, log(ingtot+1) ~ female*age+female*age2, weights = fex_c)
+summary(p3m3)
+
+p3m4 <- lm(data = df2%>%subset(ingtot > 0), log(ingtot) ~ female*age+female*age2, weights = fex_c)
+summary(p3m4)
+
+p3m5 <- lm(data = df2, ingtot ~ female*age+female*age2, weights = fex_c)
+summary(p3m5)
+
+#Cambiando ingtot por inglabo
+p3m6 <- lm(data = df2, log(inglabo+1) ~ female*age+female*age2, weights = fex_c)
+summary(p3m6)
+
+p3m7 <- lm(data = df2%>%subset(inglabo > 0), log(inglabo) ~ female*age+female*age2, weights = fex_c)
+summary(p3m7)
+
+p3m8 <- lm(data = df2, inglabo ~ female*age+female*age2, weights = fex_c)
+summary(p3m8)
+
+#Correr el bootstrap para p3m7 o el que te parezca más acertado
+#Intentemos sacar la gráfica del 2 para el mpdelo p3m7 como el g6
+#Al hacer el gráfico toca colorear los puntos según el sexo, eso es con 
+browseURL("https://ggplot2.tidyverse.org/reference/geom_point.html")
+#Sacar los intervalos para el peak age con sus IC
+
+
