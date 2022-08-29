@@ -188,3 +188,8 @@ alpha <- 0.05
 age_peak_min_nolog <- -((boot3$t0[2]- qnorm(alpha/2)*output_tab[2,2])/(2*(boot3$t0[3]- qnorm(alpha/2)*output_tab[3,2])))
 age_peak_max_nolog <- -((boot3$t0[2]+ qnorm(alpha/2)*output_tab[2,2])/(2*(boot3$t0[3]+ qnorm(alpha/2)*output_tab[3,2])))
 
+####Punto 3####
+#Crear la variable female
+df2 <- df2%>%mutate(female = 1-sex)
+
+#Probando si sirve
