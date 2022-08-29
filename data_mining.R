@@ -58,3 +58,133 @@ head(db$sex, 100)
 
 #Tabla de estadísticas descriptivas con stargazer
 stargazer(df2[c("ingtot", "age")], type = "html", title = "Estadísticas Descriptivas", out = "estdec.html")
+
+####Gráficos####
+#Boxplot estrato vs ingreso total
+ggplot(df2, aes(x = as.factor(estrato1) , y = log(ingtot) , fill = as.factor(sex))) +
+  geom_boxplot()+
+  scale_fill_hue(l=60, c=80)+
+  ggtitle("Ln del ingreso total según estrato social y sexo")+
+  xlab("Estrato o ICV")+
+  ylab("Ln del ingreso total")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  labs(fill = "Sexo")+
+  theme_classic()+
+  theme(text = element_text(size = 16), plot.title = element_text(hjust = 0.5, size = 20), legend.text = element_text(size = 14), legend.title = element_text(size = 16))+
+  scale_fill_manual(values = c("0" ="red" , "1"="blue"), label = c("0" ="Mujer" , "1"="Hombre"))
+
+
+#Scatter sin puntos de edad vs ingreso total
+ggplot(df2, aes(x = age, y = log(ingtot)))+
+  geom_smooth(method = "loess", level = 0.95, aes(weight = fex_c))+
+  ggtitle("Ingreso total según la edad")+
+  xlab("Edad")+
+  ylab("Logaritmo del ingreso total")+
+  theme_classic()+
+  theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
+
+
+#Scatter edad vs impa
+ggplot(df2, aes(x = age, y = log(impa)))+
+  geom_smooth(method = "loess", level = 0.95, aes(weight = fex_c))+
+  ggtitle("Ingreso monetario de primera actividad según la edad")+
+  xlab("Edad")+
+  ylab("Logaritmo del ingreso monetario de primera actividad")+
+  theme_classic()+
+  theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
+
+
+#Scatter con puntos de edad vs ingreso total
+ggplot(df2, aes(x = age, y = log(ingtot)))+
+  geom_point()+
+  geom_smooth(method = "loess", level = 0.95, aes(weight = fex_c))+
+  ggtitle("Ingreso total según la edad")+
+  xlab("Edad")+
+  ylab("Logaritmo del ingreso total")+
+  theme_classic()+
+  theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
+
+
+
+
+####Regresiones####
+#relación ingreso y edad
+
+df2 <- df2%>%mutate(age2=age^2)
+df2 <- df2%>%mutate(inglabo=impa+isa)
+
+
+#Bootstrap
+eta.fn_1<-function(data,index){
+  coef(lm(impa~age+age2, data = df2, weights = fex_c, subset = index))
+}
+
+boot1 <- boot(df2, eta.fn_1, R = 1000)
+
+eta.fn_2<-function(data,index){
+  coef(lm(log(impa+1)~age+age2, data = df2, weights = fex_c, subset = index))
+}
+
+boot2 <- boot(df2, eta.fn_2, R = 1000)
+
+eta.fn_3<-function(data,index){
+  coef(lm(inglabo~age+age2, data = df2, weights = fex_c, subset = index))
+}
+
+boot3 <- boot(df2, eta.fn_3, R = 1000)
+
+eta.fn_4<-function(data,index){
+  coef(lm(log(inglabo+1)~age+age2, data = df2, weights = fex_c, subset = index))
+}
+
+boot4 <- boot(df2, eta.fn_4, R = 1000)
+
+df2 <- df2%>%mutate(inglabo_hat = exp(boot4$t0[1]+boot4$t0[2]*age+boot4$t0[3]*age2)-1)
+df2 <- df2%>%mutate(inglabo_hat_nolog = boot3$t0[1]+boot3$t0[2]*age+boot3$t0[3]*age2)
+
+#Gráfico solo con valores predichos
+ggplot(df2, aes(x = age, y = log(inglabo_hat)))+
+  geom_point()+
+  geom_smooth(method = "loess", level = 0.95, aes(weight = fex_c))+
+  ggtitle("Ingreso total según la edad")+
+  xlab("Edad")+
+  ylab("Logaritmo del ingreso total")+
+  theme_classic()+
+  theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
+
+#Gráfico con ambos
+ggplot(data = df2)+
+  geom_point(mapping = aes(x = age, y = log(inglabo)), color = "blue")+
+  geom_point(mapping = aes(x = age, y = log(inglabo_hat)), color = "red")+
+  geom_point(mapping = aes(x = age, y = log(inglabo_hat_nolog)), color = "orange")+
+  ggtitle("Ingreso total según la edad")+
+  xlab("Edad")+
+  ylab("Logaritmo del ingreso total")+
+  theme_classic()+
+  theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
+
+#Gráfico sin logaritmos
+ggplot(data = df2)+
+  geom_point(mapping = aes(x = age, y = (inglabo)), color = "blue")+
+  geom_point(mapping = aes(x = age, y = (inglabo_hat)), color = "red")+
+  geom_point(mapping = aes(x = age, y = (inglabo_hat_nolog)), color = "orange")+
+  ggtitle("Ingreso total según la edad")+
+  xlab("Edad")+
+  ylab("Logaritmo del ingreso total")+
+  theme_classic()+
+  theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
+
+
+#Age peak
+age_peak <- -(boot4$t0[2]/(2*boot4$t0[3]))
+age_peak_nolog <- -(boot3$t0[2]/(2*boot3$t0[3]))
+
+
+
+#Obtener errores estándar de los estimadores
+output_tab <- t(rbind(boot3$t0, apply(boot3$t, 2, function(x) sd(x))))  
+
+alpha <- 0.05
+age_peak_min_nolog <- -((boot3$t0[2]- qnorm(alpha/2)*output_tab[2,2])/(2*(boot3$t0[3]- qnorm(alpha/2)*output_tab[3,2])))
+age_peak_max_nolog <- -((boot3$t0[2]+ qnorm(alpha/2)*output_tab[2,2])/(2*(boot3$t0[3]+ qnorm(alpha/2)*output_tab[3,2])))
+
