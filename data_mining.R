@@ -1,11 +1,25 @@
 #Diego Osorio, Samuel Malkún y Daniel Franco.
 
+#Set de preguntas
+######Punto 2
+#Log o no, si utilizamos log borrar NA o qué hacer?
+#La variable inglabo suena bien o debería ser ingreso total, podemos usar ambas?
+#¿Cómo se hace la discusión del model´s in sample fit? ¿Es el R^2, F y MSE?
+#Es un plot de los coeficientes? o qué plot es el que se está pidiendo?
+#Ya tenemos el peak age, pero cómo se hace el intervalo de confianza? ¿También quieren los intervalos de los betas?¿Asumimos dist normal?
+####Punto 3
+#acá es obligatorio logaritmo? o se compara con y sin?
+#Misma duda que el 2 con el plot y los intervalos
+
+
+
+
 ## llamar la librería pacman: contiene la función p_load()
 rm(list=ls())
 require(pacman)
 p_load(tidyverse, # contiene las librerías ggplot, dplyr...
        rvest, data.table, dplyr, skimr, # summary data
-       caret, rio, vtable, stargazer, ggplot2, boot, MLmetrics) # web-scraping
+       caret, rio, vtable, stargazer, ggplot2, boot, MLmetrics, lfe) # web-scraping
 
 set.seed(1000)
 
@@ -38,7 +52,7 @@ for (url in lista_urls) {
 }
 
 #Establecer directorio de trabajo
-setwd("C:/Users/Diego/OneDrive/Documents/GitHub/BD-ML---PS1")
+setwd("C:/Users/danie/OneDrive/Escritorio/Uniandes/PEG/Big Data and Machine Learning/BD-ML---PS1")
 
 
 
@@ -419,6 +433,17 @@ browseURL("https://ggplot2.tidyverse.org/reference/geom_point.html")
 
 
 
+
+
+#Punto 3 c
+names(df2)
+dfBase <- df2[c("age", "age2", "female", "clase", "p6210", "p6210s1", "college", "cotPension", "cuentaPropia", "estrato1", "fex_c", "formal", "fweight", "hoursWorkUsual", "inglabo", "ingtot", "impa", "isa", "maxEducLevel", "mes", "microEmpresa", "oficio", "p6050","p6426", "y_ingLab_m", "y_ingLab_m_ha", "y_salarySec_m", "y_salary_m_hu", "y_total_m", "y_total_m_ha")]
+
+modelo_prueba <- lm(data = dfBase, y_total_m ~ age*female+age2*female+factor(maxEducLevel)+factor(oficio))
+summary(modelo_prueba)
+
+modelo_prueba_2 <- felm(y_total_m ~ age*female+age2*female|factor(maxEducLevel)+factor(oficio), data = dfBase)
+summary(modelo_prueba_2)
 
 ## Punto 4: Prediction and Performance Evaluation
 # prediction, overfitting and cross-val
