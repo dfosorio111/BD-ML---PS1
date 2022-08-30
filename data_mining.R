@@ -14,57 +14,73 @@ install.packages("data,table")
 #Cargar librerías
 library(data.table)
 
-####Descargar los chunks####
 
-#Creamos una lista que contiene todas las urls de cada dtachunk
+####Descargar los chunks####
+# cargar data-set
+# creamos una lista que contiene todas las urls de cada datachunk
 lista_urls <- paste0("https://ignaciomsarmiento.github.io/GEIH2018_sample/pages/geih_page_",1:10,".html")
 
-#Se crea un dat fram vacío
+# crear dataframe vacio - estructura de datos
 df <- data.frame()
-#El ciclo crea un df para cada data_chunk y luego une todos los data frames
+# iterar sobre la lista de urls
 for (url in lista_urls) {
+  
+  # print url actual que contiene el data chunk
   print(url)
+  # read_html(): leer url del data-chunk
+  # html_table():  crear tabla html
   temporal <- read_html(url)%>%html_table()
+  
+  # as.data.frame() crea un data-frame temporal
   df_temportal <- as.data.frame(temporal[[1]])
+  # rbind(df1,df2): unir el df general con el df temporal
   df <- rbind(df, df_temportal)
 }
 
 #Establecer directorio de trabajo
-setwd("C:/Users/danie/OneDrive/Escritorio/Uniandes/PEG/Big Data and Machine Learning")
+setwd("C:/Users/Diego/OneDrive/Documents/GitHub/BD-ML---PS1")
 
 
 
 #####Data mining and data cleaning####
+
+# %>% - (df.fun1.fun2 in Python)
+# subset: overwrite sobre df on condition ocu == 1 & age >=18
+
 df2 <- df%>%subset(ocu == 1 & age >=18)
 
 
 #Url de la complementaria 1
-browseURL("https://lectures-r.gitlab.io/big-data-202202/week-01/")
-#Guardar las bases de datos en csv
+# browseURL("https://lectures-r.gitlab.io/big-data-202202/week-01/")
+
+# guardar/escribirlas bases de datos en csv en el wd establecido
 write.csv(df2, "datafiltrada.csv")
 write.csv(df, "dataoriginal.csv")
 
-#Cargar la base
+
+
+# cargar la base
 df2 <- read.csv("datafiltrada.csv")
 
 
-####Estadísticas descriptivas####
+####Estadísticas descriptivas: análisis estadístico y descripción de variables###
+
 
 ## summary db
 names(df2)[names(df2) == ''] <- 'Índice'
-#Se guarda como tibble
+# Se guarda como tibble
 db <- as_tibble(df2)
-#Skim
+# skim
 skim(db)%>%head()
-
-
 head(db$sex, 100)
+
 
 #Tabla de estadísticas descriptivas con stargazer
 stargazer(df2[c("ingtot", "age")], type = "html", title = "Estadísticas Descriptivas", out = "estdec.html")
 
+
 ####Gráficos####
-#Boxplot estrato vs ingreso total g1
+# boxplot estrato vs ingreso total g1
 ggplot(df2, aes(x = as.factor(estrato1) , y = log(ingtot) , fill = as.factor(sex))) +
   geom_boxplot()+
   scale_fill_hue(l=60, c=80)+
@@ -78,7 +94,9 @@ ggplot(df2, aes(x = as.factor(estrato1) , y = log(ingtot) , fill = as.factor(sex
   scale_fill_manual(values = c("0" ="red" , "1"="blue"), label = c("0" ="Mujer" , "1"="Hombre"))
 
 
-#Scatter sin puntos de edad vs ingreso total g2
+
+
+# scatter sin puntos de edad vs ingreso total g2
 ggplot(df2, aes(x = age, y = log(ingtot)))+
   geom_smooth(method = "loess", level = 0.95, aes(weight = fex_c))+
   ggtitle("Ingreso total según la edad")+
@@ -88,7 +106,7 @@ ggplot(df2, aes(x = age, y = log(ingtot)))+
   theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
 
 
-#Scatter edad vs impa g3
+# scatter edad vs impa g3
 ggplot(df2, aes(x = age, y = log(impa)))+
   geom_smooth(method = "loess", level = 0.95, aes(weight = fex_c))+
   ggtitle("Ingreso monetario de primera actividad según la edad")+
@@ -98,7 +116,7 @@ ggplot(df2, aes(x = age, y = log(impa)))+
   theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
 
 
-#Scatter con puntos de edad vs ingreso total b4
+# scatter con puntos de edad vs ingreso total b4
 ggplot(df2, aes(x = age, y = log(ingtot)))+
   geom_point()+
   geom_smooth(method = "loess", level = 0.95, aes(weight = fex_c))+
@@ -111,18 +129,23 @@ ggplot(df2, aes(x = age, y = log(ingtot)))+
 
 
 
-####Regresiones####
+####Modelos de Regresion Lineal####
 #relación ingreso y edad
 
+# mutate(x=var):permite crear nuevas variables a partir de otras variables para construir funciones f(y), f(x)
 df2 <- df2%>%mutate(age2=age^2)
 df2 <- df2%>%mutate(inglabo=impa+isa)
 
 
-#Bootstrap
+
+### Bootstraping ###
+
+
 eta.fn_1<-function(data,index){
   coef(lm(impa~age+age2, data = df2, weights = fex_c, subset = index))
 }
 
+# boot(data, eta_func, R=N)
 boot1 <- boot(df2, eta.fn_1, R = 1000)
 
 eta.fn_2<-function(data,index){
@@ -143,10 +166,15 @@ eta.fn_4<-function(data,index){
 
 boot4 <- boot(df2, eta.fn_4, R = 1000)
 
+# mutate(x=var):permite crear nuevas variables a partir de otras variables para construir funciones f(y), f(x)
+# inglabo_hat(fun_predic), inglabo_hat_nolog(fun_predic)
 df2 <- df2%>%mutate(inglabo_hat = exp(boot4$t0[1]+boot4$t0[2]*age+boot4$t0[3]*age2)-1)
 df2 <- df2%>%mutate(inglabo_hat_nolog = boot3$t0[1]+boot3$t0[2]*age+boot3$t0[3]*age2)
 
-#Gráfico solo con valores predichos g5
+
+
+
+# gráfico solo con valores predichos g5
 ggplot(df2, aes(x = age, y = log(inglabo_hat)))+
   geom_point()+
   geom_smooth(method = "loess", level = 0.95, aes(weight = fex_c))+
@@ -179,25 +207,35 @@ ggplot(data = df2)+
   theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
 
 
-#Age peak
+
+#Age peak: igualar la función derivada de y = 0  
 age_peak <- -(boot4$t0[2]/(2*boot4$t0[3]))
 age_peak_nolog <- -(boot3$t0[2]/(2*boot3$t0[3]))
+
 
 
 
 #Obtener errores estándar de los estimadores
 output_tab <- t(rbind(boot3$t0, apply(boot3$t, 2, function(x) sd(x))))  
 
+# Intervalos de confianza
+
 alpha <- 0.05
 age_peak_min_nolog <- -((boot3$t0[2]- qnorm(alpha/2)*output_tab[2,2])/(2*(boot3$t0[3]- qnorm(alpha/2)*output_tab[3,2])))
 age_peak_max_nolog <- -((boot3$t0[2]+ qnorm(alpha/2)*output_tab[2,2])/(2*(boot3$t0[3]+ qnorm(alpha/2)*output_tab[3,2])))
 
+
+
 ####Punto 3####
 #Crear la variable female
+
+
+# mutate(var=dep) 
 df2 <- df2%>%mutate(female = 1-sex)
 
 p3m1 <- lm(data = df2, log(ingtot+1) ~ female, weights = fex_c)
 summary(p3m1)
+
 
 p3m2 <- lm(data = df2%>%subset(ingtot > 0), log(ingtot) ~ female, weights = fex_c)
 summary(p3m2)
@@ -213,9 +251,18 @@ summary(p3m4)
 p3m5 <- lm(data = df2, ingtot ~ female*age+female*age2, weights = fex_c)
 summary(p3m5)
 
+
+
 #Cambiando ingtot por inglabo
 p3m6 <- lm(data = df2, log(inglabo+1) ~ female*age+female*age2, weights = fex_c)
 summary(p3m6)
+
+
+# modelo regresion lineal
+# f(y) = log(inglabo), inglabo=impa+isa
+# f(x) = female*age+female*age2
+# df2%>%subset(inglabo > 0)  overwrite df2 on condition:inglabo > 0
+# factor de expansión:  weights = fex_c 
 
 p3m7 <- lm(data = df2%>%subset(inglabo > 0), log(inglabo) ~ female*age+female*age2, weights = fex_c)
 summary(p3m7)
@@ -223,10 +270,177 @@ summary(p3m7)
 p3m8 <- lm(data = df2, inglabo ~ female*age+female*age2, weights = fex_c)
 summary(p3m8)
 
+
+### Bootstraping ###
+
+# bootstrap para p3m7 
+eta.fn_p3m7<-function(data,index){
+  coef(lm(log(inglabo) ~ female*age+female*age2, data = df2%>%subset(inglabo>0), weights = fex_c, subset = index))
+}
+
+# boot(data, eta_func, R=N)
+bootp3m7 <- boot(df2, eta.fn_p3m7, R = 1000)
+
+
+eta.fn_p3m1<-function(data,index){
+  coef(lm(log(ingtot+1) ~ female, data = df2, weights = fex_c, subset = index))
+}
+
+# boot(data, eta_func, R=N)
+bootp3m1 <- boot(df2, eta.fn_p3m1, R = 1000)
+
+
+
+eta.fn_p3m2<-function(data,index){
+  coef(lm(log(ingtot) ~ female, data = df2%>%subset(ingtot > 0), weights = fex_c, subset = index))
+}
+
+# boot(data, eta_func, R=N)
+bootp3m2 <- boot(df2, eta.fn_p3m2, R = 1000)
+
+
+
+eta.fn_p3m3<-function(data,index){
+  coef(lm(log(ingtot+1) ~ female*age+female*age2, data = df2, weights = fex_c, subset = index))
+}
+
+# boot(data, eta_func, R=N)
+bootp3m3 <- boot(df2, eta.fn_p3m3, R = 1000)
+
+
+eta.fn_p4m4<-function(data,index){
+  coef(lm(log(ingtot) ~ female*age+female*age2, data = df2%>%subset(ingtot > 0), weights = fex_c, subset = index))
+}
+
+# boot(data, eta_func, R=N)
+bootp4m4 <- boot(df2, eta.fn_p4m4, R = 1000)
+
+eta.fn_p5m5<-function(data,index){
+  coef(lm(ingtot ~ female*age+female*age2, data = df2, weights = fex_c, subset = index))
+}
+
+# boot(data, eta_func, R=N)
+bootp5m5 <- boot(df2, eta.fn_p5m5, R = 1000)
+
+
+
+## graficas: scatter plots
+
+# f(y) = log(inglabo), inglabo=impa+isa
+# f(x) = female*age+female*age2
+# df2%>%subset(inglabo > 0)  overwrite df2 on condition:inglabo > 0
+
+# crear variables para predictores
+# mutate(x=var):permite crear nuevas variables a partir de otras variables para construir funciones f(y), f(x)
+# inglabo_hat(fun_predic), inglabo_hat_nolog(fun_predic)
+
+
+
+### FALTA DEFINIR LA FUNCION inglaboFem_hat_m para el caso dicotomo 
+df2 <- df2%>%mutate(inglaboFem_hat_m = exp(bootp3m7$t0[1]+bootp3m7$t0[2]*female+bootp3m7$t0[3]*age+bootp3m7$t0[4]*age2+bootp3m7$t0[5]*female*age+bootp3m7$t0[6]*female*age2))
+
+
+
+# gráfico solo con valores predichos g5
+ggplot(df2, aes(x = age, y = log(inglaboFem_hat_m), group=as.factor(female), color=as.factor(female))  ) +
+  geom_point()+
+  ggtitle("Ingreso total según la edad, por sexo")+
+  xlab("Edad")+
+  labs(colour = "Sexo")+
+  ylab("Logaritmo del ingreso total")+
+  theme_classic()+
+  theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )+
+  scale_colour_manual(values=c('0'='blue', '1'='red'), label= c('0'='Hombre', '1'='Mujer') )
+  
+
+
+
+# gráfico solo con valores originales g6
+ggplot(df2%>%subset(inglabo>0), aes(x = age, y = log(inglabo), group=as.factor(female), color=as.factor(female))  ) +
+  geom_point()+
+  ggtitle("Ingreso total según la edad, por sexo")+
+  xlab("Edad")+
+  labs(colour = "Sexo")+
+  ylab("Logaritmo del ingreso total")+
+  theme_classic()+
+  theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )+
+  scale_colour_manual(values=c('0'='blue', '1'='red'), label= c('0'='Hombre', '1'='Mujer') )
+
+
+
+
+
+
+#Gráfico con ambos g6
+ggplot(data = df2%>%subset(inglabo>0))+
+  geom_point(mapping = aes(x = age, y = log(inglabo)), color = "blue")+
+  geom_point(mapping = aes(x = age, y = log(inglaboFem_hat_m)), color = "red")+
+  #geom_point(mapping = aes(x = age, y = log(inglabo_hat_nolog)), color = "orange")+
+  ggtitle("Ingreso total según la edad")+
+  xlab("Edad")+
+  ylab("Logaritmo del ingreso total")+
+  theme_classic()+
+  theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
+
+
+
+
+
+## FALTA HACER EL AGE PEAK CON LA DERIVADA DE Y_PREDICT(Y_HAT)
+
+#Age peak: igualar la función derivada de y = 0 
+
+# caso hombres
+age_peak_hom <- -(bootp3m7$t0[3])/(2*bootp3m7$t0[4])
+
+
+# caso mujeres
+age_peak_fem <- -(bootp3m7$t0[3]+bootp3m7$t0[5])/(2*(bootp3m7$t0[4]+bootp3m7$t0[6]))
+
+
+
+
+#Obtener errores estándar de los estimadores****
+output_tab <- t(rbind(boot3$t0, apply(boot3$t, 2, function(x) sd(x))))  
+
+# Intervalos de confianza
+
+alpha <- 0.05
+age_peak_min_nolog <- -((boot3$t0[2]- qnorm(alpha/2)*output_tab[2,2])/(2*(boot3$t0[3]- qnorm(alpha/2)*output_tab[3,2])))
+age_peak_max_nolog <- -((boot3$t0[2]+ qnorm(alpha/2)*output_tab[2,2])/(2*(boot3$t0[3]+ qnorm(alpha/2)*output_tab[3,2])))
+
+
 #Correr el bootstrap para p3m7 o el que te parezca más acertado
 #Intentemos sacar la gráfica del 2 para el mpdelo p3m7 como el g6
 #Al hacer el gráfico toca colorear los puntos según el sexo, eso es con 
 browseURL("https://ggplot2.tidyverse.org/reference/geom_point.html")
+
 #Sacar los intervalos para el peak age con sus IC
 
+
+
+
+## Punto 4: Prediction and Performance Evaluation
+# prediction, overfitting and cross-val
+
+# split database into test-set and test-set
+
+p_load(tidyverse, fabricatr, stargazer)
+
+# set/crear seed para reproducibilidad
+set.seed(101010)
+
+# crear dataframe para fit/train el modelo
+
+df_ml <- df2%>%mutate(holdout= as.logical(1:nrow(df2)%in%sample(nrow(df2), nrow(df2)*.3)) )
+test_set <- df_ml[df_ml$holdout==T,]
+train_set <- df_ml[df_ml$holdout==F,]
+
+
+
+
+# contruir el modelo dummy/naive especificacion
+
+spec1 <- lm()
+                      
 
