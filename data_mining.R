@@ -3,31 +3,39 @@
 #Set de preguntas
 ######Punto 2
 #Log o no, si utilizamos log borrar NA o qué hacer?
-#La variable inglabo suena bien o debería ser ingreso total, podemos usar ambas?
-#¿Cómo se hace la discusión del model´s in sample fit? ¿Es el R^2, F y MSE?
+#La variable inglabo suena bien o debería ser ingreso total, podemos usar ambas? ( hay nuevas variables y_income)
+#¿Cómo se hace la discusión del model´s in sample fit? ¿Es el R^2, F, MSE, F_1?
 #Es un plot de los coeficientes? o qué plot es el que se está pidiendo?
 #Ya tenemos el peak age, pero cómo se hace el intervalo de confianza? ¿También quieren los intervalos de los betas?¿Asumimos dist normal?
+
 ####Punto 3
 #acá es obligatorio logaritmo? o se compara con y sin?
 #Misma duda que el 2 con el plot y los intervalos
 
 
 
-
-## llamar la librería pacman: contiene la función p_load()
+# 1. importar librarias y set environment/wd
+# llamar la librería pacman: contiene la función p_load()
 rm(list=ls())
+
+#Establecer directorio de trabajo
+setwd("C:/Users/Diego/OneDrive/Documents/GitHub/BD-ML---PS1")
+
+
+set.seed(1000)
 require(pacman)
 p_load(tidyverse, # contiene las librerías ggplot, dplyr...
        rvest, data.table, dplyr, skimr, # summary data
        caret, rio, vtable, stargazer, ggplot2, boot, MLmetrics, lfe) # web-scraping
 
-set.seed(1000)
 
 #Instalar paquetes
 install.packages("data,table")
 #Cargar librerías
 library(data.table)
 
+
+# 2. web-scrapping: descargar URL con databases y construir bases
 
 ####Descargar los chunks####
 # cargar data-set
@@ -51,15 +59,12 @@ for (url in lista_urls) {
   df <- rbind(df, df_temportal)
 }
 
-#Establecer directorio de trabajo
-setwd("C:/Users/danie/OneDrive/Escritorio/Uniandes/PEG/Big Data and Machine Learning/BD-ML---PS1")
 
 
-
-#####Data mining and data cleaning####
+# 3. Data mining and data cleaning
 
 # %>% - (df.fun1.fun2 in Python)
-# subset: overwrite sobre df on condition ocu == 1 & age >=18
+# df%>%subset: overwrite sobre df on condition ocu == 1 & age >=18
 
 df2 <- df%>%subset(ocu == 1 & age >=18)
 
@@ -72,12 +77,13 @@ write.csv(df2, "datafiltrada.csv")
 write.csv(df, "dataoriginal.csv")
 
 
-
-# cargar la base
+# read_csv(file):  cargar database
+df <- read.csv("dataoriginal.csv")
 df2 <- read.csv("datafiltrada.csv")
 
 
-####Estadísticas descriptivas: análisis estadístico y descripción de variables###
+
+# 4. Estadísticas descriptivas: análisis estadístico y descripción de variables
 
 
 ## summary db
@@ -93,7 +99,8 @@ head(db$sex, 100)
 stargazer(df2[c("ingtot", "age")], type = "html", title = "Estadísticas Descriptivas", out = "estdec.html")
 
 
-####Gráficos####
+#Gráficos#
+
 # boxplot estrato vs ingreso total g1
 ggplot(df2, aes(x = as.factor(estrato1) , y = log(ingtot) , fill = as.factor(sex))) +
   geom_boxplot()+
@@ -141,19 +148,17 @@ ggplot(df2, aes(x = age, y = log(ingtot)))+
   theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
 
 
+# 5. Modelos de Regresion Lineal
 
-
-####Modelos de Regresion Lineal####
 #relación ingreso y edad
-
+# mutate(new_col=f(var)): crea nueva columna a partir de existentes
 # mutate(x=var):permite crear nuevas variables a partir de otras variables para construir funciones f(y), f(x)
 df2 <- df2%>%mutate(age2=age^2)
 df2 <- df2%>%mutate(inglabo=impa+isa)
 
 
-
 ### Bootstraping ###
-
+# boot(database, eta_fun, R=N):  permite obtener los estimadores t(beta) del modelo
 
 eta.fn_1<-function(data,index){
   coef(lm(impa~age+age2, data = df2, weights = fex_c, subset = index))
@@ -184,9 +189,6 @@ boot4 <- boot(df2, eta.fn_4, R = 1000)
 # inglabo_hat(fun_predic), inglabo_hat_nolog(fun_predic)
 df2 <- df2%>%mutate(inglabo_hat = exp(boot4$t0[1]+boot4$t0[2]*age+boot4$t0[3]*age2)-1)
 df2 <- df2%>%mutate(inglabo_hat_nolog = boot3$t0[1]+boot3$t0[2]*age+boot3$t0[3]*age2)
-
-
-
 
 # gráfico solo con valores predichos g5
 ggplot(df2, aes(x = age, y = log(inglabo_hat)))+
@@ -349,8 +351,7 @@ bootp5m5 <- boot(df2, eta.fn_p5m5, R = 1000)
 # inglabo_hat(fun_predic), inglabo_hat_nolog(fun_predic)
 
 
-
-### FALTA DEFINIR LA FUNCION inglaboFem_hat_m para el caso dicotomo 
+# inglaboFem_hat_m: funcion prediccion de inglaboFem
 df2 <- df2%>%mutate(inglaboFem_hat_m = exp(bootp3m7$t0[1]+bootp3m7$t0[2]*female+bootp3m7$t0[3]*age+bootp3m7$t0[4]*age2+bootp3m7$t0[5]*female*age+bootp3m7$t0[6]*female*age2))
 
 
@@ -397,11 +398,6 @@ ggplot(data = df2%>%subset(inglabo>0))+
   theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
 
 
-
-
-
-## FALTA HACER EL AGE PEAK CON LA DERIVADA DE Y_PREDICT(Y_HAT)
-
 #Age peak: igualar la función derivada de y = 0 
 
 # caso hombres
@@ -413,8 +409,10 @@ age_peak_fem <- -(bootp3m7$t0[3]+bootp3m7$t0[5])/(2*(bootp3m7$t0[4]+bootp3m7$t0[
 
 
 
-
+### FALTA DETERMINAR LA FUNCION PARA CALCULAR LOS INTERVALOS DE CONFIANZA
+#Sacar los intervalos para el peak age con sus IC
 #Obtener errores estándar de los estimadores****
+
 output_tab <- t(rbind(boot3$t0, apply(boot3$t, 2, function(x) sd(x))))  
 
 # Intervalos de confianza
@@ -424,26 +422,66 @@ age_peak_min_nolog <- -((boot3$t0[2]- qnorm(alpha/2)*output_tab[2,2])/(2*(boot3$
 age_peak_max_nolog <- -((boot3$t0[2]+ qnorm(alpha/2)*output_tab[2,2])/(2*(boot3$t0[3]+ qnorm(alpha/2)*output_tab[3,2])))
 
 
-#Correr el bootstrap para p3m7 o el que te parezca más acertado
-#Intentemos sacar la gráfica del 2 para el mpdelo p3m7 como el g6
-#Al hacer el gráfico toca colorear los puntos según el sexo, eso es con 
-browseURL("https://ggplot2.tidyverse.org/reference/geom_point.html")
-
-#Sacar los intervalos para el peak age con sus IC
-
-
-
-
 
 #Punto 3 c
 names(df2)
-dfBase <- df2[c("age", "age2", "female", "clase", "p6210", "p6210s1", "college", "cotPension", "cuentaPropia", "estrato1", "fex_c", "formal", "fweight", "hoursWorkUsual", "inglabo", "ingtot", "impa", "isa", "maxEducLevel", "mes", "microEmpresa", "oficio", "p6050","p6426", "y_ingLab_m", "y_ingLab_m_ha", "y_salarySec_m", "y_salary_m_hu", "y_total_m", "y_total_m_ha")]
 
-modelo_prueba <- lm(data = dfBase, y_total_m ~ age*female+age2*female+factor(maxEducLevel)+factor(oficio))
-summary(modelo_prueba)
+# contruir nueva base para gap con variables de control
+dfbase<- df2[c("age", "age2", "female", "clase", "p6210", "relab","p6210s1", "college", "cotPension", "cuentaPropia", "estrato1", "fex_c", "formal", "fweight", "hoursWorkUsual", "inglabo", "ingtot", "impa", "isa", "maxEducLevel", "mes", "microEmpresa", "oficio", "p6050","p6426", "y_ingLab_m", "y_ingLab_m_ha", "y_salarySec_m", "y_salary_m_hu", "y_total_m", "y_total_m_ha")]
+write.csv(dfbase, "datagap.csv")
+dfgap <- read.csv("datagap.csv")
 
-modelo_prueba_2 <- felm(y_total_m ~ age*female+age2*female|factor(maxEducLevel)+factor(oficio), data = dfBase)
-summary(modelo_prueba_2)
+
+
+# modelo lineal - variables de control: maxEducLevel
+
+modelo_gap1 <- lm(data = dfgap, y_total_m ~ age*female+age2*female+factor(maxEducLevel) , weights = fex_c)
+summary(modelo_gap1)
+
+# modelo lineal - variables de control: maxEducLevel, factor(estrato1)
+modelo_gap2 <- lm(data = dfgap, y_total_m ~ age*female+age2*female+factor(maxEducLevel)+ factor(estrato1) , weights = fex_c)
+summary(modelo_gap1)
+
+# modelo lineal - variables de control: maxEducLevel, factor(estrato1)
+modelo_gap3 <- lm(data = dfgap, y_total_m ~ age*female+age2*female+factor(maxEducLevel)+ factor(estrato1) , weights = fex_c)
+summary(modelo_gap1)
+
+
+
+# modelo lineal - variables de control: nivel educativo, estrato1, relab, oficio1
+# basado en ncbi:literatura
+
+modelo_gap4 <- lm(data = dfgap, y_total_m ~ age*female+age2*female+factor(maxEducLevel)+ factor(estrato1) + factor(relab) + factor(oficio), weights = fex_c)
+summary(modelo_gap1)
+
+
+
+
+
+
+
+
+# modelo fwl (matriz de proyección y annihilation)
+modelo_gap1_fwl <- felm(y_total_m ~ age*female+age2*female| factor(maxEducLevel)+ factor(estrato1), data =dfgap)
+summary(modelo_gap1_fwl)
+
+
+
+# bootstping para modelo con fwl (matriz de proyección y annihilation)
+
+eta.fn_gap1<-function(data,index){
+  coef(lm(ingtot ~ female*age+female*age2, data = df2, weights = fex_c, subset = index))
+}
+
+
+
+# boot(data, eta_func, R=N)
+bootgap1 <- boot(df2, eta.fngap1, R = 1000)
+
+
+
+
+
 
 ## Punto 4: Prediction and Performance Evaluation
 # prediction, overfitting and cross-val
@@ -467,5 +505,10 @@ train_set <- df_ml[df_ml$holdout==F,]
 # contruir el modelo dummy/naive especificacion
 
 spec1 <- lm()
-                      
+
+
+
+
+
+
 
