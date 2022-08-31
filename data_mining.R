@@ -149,6 +149,17 @@ ggplot(df2, aes(x = age, y = log(ingtot)))+
   theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
 
 
+#Scatter del y_laboral vs edad
+ggplot(df2, aes(x = age, y = log(y_ingLab_m)))+
+  geom_point()+
+  geom_smooth(method = "loess", level = 0.95, aes(weight = fex_c))+
+  ggtitle("Perfil de ingreso laboral y edad")+
+  xlab("Edad")+
+  ylab("Logaritmo del ingreso laboral mensual")+
+  theme_classic()+
+  theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
+
+
 # 5. Modelos de Regresion Lineal
 
 #relación ingreso y edad
@@ -162,17 +173,22 @@ df2 <- df2%>%mutate(inglabo=impa+isa)
 # boot(database, eta_fun, R=N):  permite obtener los estimadores t(beta) del modelo
 
 eta.fn_1<-function(data,index){
-  coef(lm(impa~age+age2, data = df2, weights = fex_c, subset = index))
+  coef(lm(y_ingLab_m~age+age2, data = df2, weights = fex_c, subset = index))
 }
 
 # boot(data, eta_func, R=N)
 boot1 <- boot(df2, eta.fn_1, R = 1000)
 
+output_boot1 <- t(rbind(boot1$t0, apply(boot1$t, 2, function(x) sd(x))))  
+
 eta.fn_2<-function(data,index){
-  coef(lm(log(impa+1)~age+age2, data = df2, weights = fex_c, subset = index))
+  coef(lm(log(y_ingLab_m)~age+age2, data = df2, weights = fex_c, subset = index))
 }
 
 boot2 <- boot(df2, eta.fn_2, R = 1000)
+
+#Sacar la tabla
+stargazer(output_boot1, type = "html", title = "Estadísticas Descriptivas", out = "estdec.html")
 
 eta.fn_3<-function(data,index){
   coef(lm(inglabo~age+age2, data = df2, weights = fex_c, subset = index))
