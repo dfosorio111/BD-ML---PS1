@@ -19,7 +19,8 @@
 rm(list=ls())
 
 #Establecer directorio de trabajo
-setwd("C:/Users/Diego/OneDrive/Documents/GitHub/BD-ML---PS1")
+setwd("~/Desktop/Big Data/Repositorios/BD-ML---PS1")
+
 
 
 set.seed(1000)
@@ -451,8 +452,10 @@ summary(modelo_gap1)
 # modelo lineal - variables de control: nivel educativo, estrato1, relab, oficio1
 # basado en ncbi:literatura
 
-modelo_gap4 <- lm(data = dfgap, y_total_m ~ age*female+age2*female+factor(maxEducLevel)+ factor(estrato1) + factor(relab) + factor(oficio), weights = fex_c)
-summary(modelo_gap1)
+dfgap2 <- dfgap%>%subset(y_ingLab_m>0)
+
+modelo_gap4 <- lm(data = dfgap2, log(y_ingLab_m) ~ age*female+age2*female+factor(maxEducLevel)+ factor(estrato1) + factor(relab), weights = fex_c)
+summary(modelo_gap4)
 
 
 
@@ -462,26 +465,37 @@ summary(modelo_gap1)
 
 
 # modelo fwl (matriz de proyección y annihilation)
-modelo_gap1_fwl <- felm(y_total_m ~ age*female+age2*female| factor(maxEducLevel)+ factor(estrato1), data =dfgap)
-summary(modelo_gap1_fwl)
+modelo_gap4_fwl <- felm(log(y_ingLab_m) ~ age*female+age2*female| factor(maxEducLevel)+ factor(estrato1)+ factor(relab), data =dfgap2, weights = dfgap2$fex_c)
+summary(modelo_gap4_fwl)
 
 
 
 # bootstping para modelo con fwl (matriz de proyección y annihilation)
 
-eta.fn_gap1<-function(data,index){
-  coef(lm(ingtot ~ female*age+female*age2, data = df2, weights = fex_c, subset = index))
+eta.fn_gap4<-function(data,index){
+  coef(lm(log(y_ingLab_m) ~ age*female+age2*female+factor(maxEducLevel)+ factor(estrato1) + factor(relab), data = dfgap2, weights = fex_c, subset = index))
 }
 
 
 
 # boot(data, eta_func, R=N)
-bootgap1 <- boot(df2, eta.fngap1, R = 1000)
+bootgap4 <- boot(dfgap2, eta.fn_gap4, R = 1000)
 
+eta.fn_gap5<-function(data,index){
+  coef(lm(log(y_ingLab_m) ~ age*female+age2*female, data = dfgap2, weights = fex_c, subset = index))
+}
 
+bootgap5 <- boot(dfgap2, eta.fn_gap5, R = 1000)
 
+bootgap5
 
+eta.fn_gap6<-function(data,index){
+  coef(felm(log(y_ingLab_m) ~ age*female+age2*female| factor(maxEducLevel)+ factor(estrato1)+ factor(relab), data = dfgap2, weights = dfgap2$fex_c, subset = index))
+}
 
+bootgap6 <- boot(dfgap2, eta.fn_gap6, R = 1000)
+
+bootgap6
 
 ## Punto 4: Prediction and Performance Evaluation
 # prediction, overfitting and cross-val
