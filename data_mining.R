@@ -186,9 +186,18 @@ eta.fn_2<-function(data,index){
 }
 
 boot2 <- boot(df2, eta.fn_2, R = 1000)
+output_boot2 <- t(rbind(boot2$t0, apply(boot2$t, 2, function(x) sd(x))))  
+
 
 #Sacar la tabla
-stargazer(output_boot1, type = "html", title = "modelo1", out = "mod1.html")
+stargazer(output_boot1, type = "html", title = "Ingreso laboral", out = "mod1.html")
+stargazer(output_boot2, type = "html", title = "Logaritmo del Ingreso laboral", out = "mod2.html")
+
+
+#Age peak: igualar la función derivada de y = 0  
+age_peak1 <- -(boot1$t0[2]/(2*boot1$t0[3]))
+age_peaklog <- -(boot2$t0[2]/(2*boot2$t0[3]))
+
 
 eta.fn_3<-function(data,index){
   coef(lm(inglabo~age+age2, data = df2, weights = fex_c, subset = index))
@@ -204,18 +213,30 @@ boot4 <- boot(df2, eta.fn_4, R = 1000)
 
 # mutate(x=var):permite crear nuevas variables a partir de otras variables para construir funciones f(y), f(x)
 # inglabo_hat(fun_predic), inglabo_hat_nolog(fun_predic)
-df2 <- df2%>%mutate(inglabo_hat = exp(boot4$t0[1]+boot4$t0[2]*age+boot4$t0[3]*age2)-1)
-df2 <- df2%>%mutate(inglabo_hat_nolog = boot3$t0[1]+boot3$t0[2]*age+boot3$t0[3]*age2)
+df2 <- df2%>%mutate(inglabo_hat = exp(boot2$t0[1]+boot2$t0[2]*age+boot2$t0[3]*age2))
+df2 <- df2%>%mutate(inglabo_hat_nolog = boot1$t0[1]+boot1$t0[2]*age+boot1$t0[3]*age2)
 
 # gráfico solo con valores predichos g5
 ggplot(df2, aes(x = age, y = log(inglabo_hat)))+
-  geom_point()+
-  geom_smooth(method = "loess", level = 0.95, aes(weight = fex_c))+
-  ggtitle("Ingreso total según la edad")+
+  geom_line()+
+  ggtitle("Perfil ingreso laboral y edad")+
   xlab("Edad")+
-  ylab("Logaritmo del ingreso total")+
+  ylab("Logaritmo del ingreso laboral estimado")+
   theme_classic()+
+  geom_vline(xintercept = 43.1, linetype="dotted", color = "red", size=1.5)+
   theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
+
+
+ggplot(df2, aes(x = age, y = inglabo_hat_nolog/1000))+
+  geom_line()+
+  ggtitle("Perfil ingreso laboral y edad")+
+  xlab("Edad")+
+  ylab("Ingreso laboral estimado en miles")+
+  theme_classic()+
+  ylim(200,2500)+
+  geom_vline(xintercept = 48.5, linetype="dotted", color = "red", size=1)+
+  theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
+
 
 #Gráfico con ambos g6
 ggplot(data = df2)+
@@ -242,7 +263,7 @@ ggplot(data = df2)+
 
 
 #Age peak: igualar la función derivada de y = 0  
-age_peak <- -(boot4$t0[2]/(2*boot4$t0[3]))
+age_peak <- -(boot2$t0[2]/(2*boot2$t0[3]))
 age_peak_nolog <- -(boot3$t0[2]/(2*boot3$t0[3]))
 
 
