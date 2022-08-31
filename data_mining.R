@@ -188,7 +188,7 @@ eta.fn_2<-function(data,index){
 boot2 <- boot(df2, eta.fn_2, R = 1000)
 
 #Sacar la tabla
-stargazer(output_boot1, type = "html", title = "Estadísticas Descriptivas", out = "estdec.html")
+stargazer(output_boot1, type = "html", title = "modelo1", out = "mod1.html")
 
 eta.fn_3<-function(data,index){
   coef(lm(inglabo~age+age2, data = df2, weights = fex_c, subset = index))
