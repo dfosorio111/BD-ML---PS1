@@ -25,6 +25,9 @@ setwd("~/Desktop/Big Data/Repositorios/BD-ML---PS1")
 #Directorio de Daniel
 setwd("C:/Users/danie/OneDrive/Escritorio/Uniandes/PEG/Big Data and Machine Learning/BD-ML---PS1")
 
+#Directorio de Diego
+setwd("C:/Users/Diego/OneDrive/Documents/GitHub/BD-ML---PS1")
+
 
 
 set.seed(1000)
@@ -178,6 +181,10 @@ df2 <- df2%>%mutate(inglabo=impa+isa)
 
 
 
+summary(lm(y_ingLab_m~age+age2, data = df2, weights = fex_c))
+
+
+
 
 eta.fn_1<-function(data,index){
   coef(lm(y_ingLab_m~age+age2, data = df2, weights = fex_c, subset = index))
@@ -230,6 +237,34 @@ df2 <- df2%>%mutate(inglabo_hat_nolog = b1_1+b2_1*age+b3_1*age2)
 df2 <- df2%>%mutate(inglabo_hat_nolog_max = b1_1_max+b2_1_max*age+b3_1_max*age2)
 df2 <- df2%>%mutate(inglabo_hat_nolog_min = b1_1_min+b2_1_min*age+b3_1_min*age2)
 
+
+
+#mse_1 <- df2%>%subset(is.na(y_ingLab_m)==FALSE)%>%mutate(mse1 =(y_ingLab_m-inglabo_hat_nolog)^2)%>%summarise(rmse=(mean(mse1)) )
+
+
+
+df2 <- df2%>%group_by(directorio)%>%mutate(mean_y_ingLab_m= mean(y_ingLab_m, na.rm=TRUE))
+df2 %>%select(directorio, y_ingLab_m, mean_y_ingLab_m)%>%tail()
+df2$y_ingLab_m_def <- df2$y_ingLab_m
+df2$y_ingLab_m_def[which(is.na(df2$y_ingLab_m_def)==TRUE)] <- df2$mean_y_ingLab_m[which(is.na(df2$y_ingLab_m_def)==TRUE)]
+df2 %>%select(directorio, y_ingLab_m, mean_y_ingLab_m, y_ingLab_m_def)%>%tail()
+
+
+
+df2mse <- df2%>%subset(is.na(y_ingLab_m_def)==FALSE)%>%mutate(mse1=(y_ingLab_m_def-inglabo_hat_nolog)^2)
+View(df2mse %>%select(directorio, y_ingLab_m, mean_y_ingLab_m, y_ingLab_m_def,mse1, inglabo_hat_nolog)%>%head(30))
+mean(df2mse$mse1)
+sqrt(mean(df2mse$mse1))
+
+
+
+summary(lm(y_ingLab_m_def~age+age2, data = df2mse, weights = fex_c))
+
+
+
+
+
+
 #Con intervalos de los betas
 ggplot(df2)+
   geom_line(mapping = aes(x = age, y = inglabo_hat_nolog_max/1000))+
@@ -246,6 +281,8 @@ ggplot(df2)+
   geom_text(aes(x=45.8, label="\nRango minimo=48.5", y=1000), colour="red", angle=90)+
   geom_text(aes(x=51.2, label="\nRango máximo=51.2", y=1000), colour="red", angle=90)+
   theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
+
+
 
 #Sin intervalos de los betas
 ggplot(df2)+
@@ -312,6 +349,16 @@ b3_2_min <- boot2$t0[3]-qnorm(1-(alpha/2))*output_boot2[3,2]
 df2 <- df2%>%mutate(inglabo_hat_log = exp(b1_2+b2_2*age+b3_2*age2))
 df2 <- df2%>%mutate(inglabo_hat_log_max = exp(b1_2_max+b2_2_max*age+b3_2_max*age2))
 df2 <- df2%>%mutate(inglabo_hat_log_min = exp(b1_2_min+b2_2_min*age+b3_2_min*age2))
+
+
+
+#Models's in sample fit
+
+
+
+
+
+
 
 #Con intervalos de los betas
 ggplot(df2)+
@@ -628,14 +675,50 @@ dfgap <- read.csv("datagap.csv")
 
 
 
+# modelos prueba fwl manual
+
+# modelo lineal - variables de control: maxEducLevel, factor(estrato1)
+
+modelo_gap2 <- lm(data = dfgap, log(y_total_m)~ age*female+age2*female+factor(maxEducLevel) , weights = fex_c)
+summary(modelo_gap2)
+
+
+# modelo fwl (matriz de proyección y annihilation)
+modelo_gap4_fwl <- felm(log(y_total_m)~ age*female+age2*female|factor(maxEducLevel), data =dfgap, weights = dfgap$fex_c)
+summary(modelo_gap4_fwl)
+
+
+prueba1 <- lm(data = dfgap, log(y_total_m)~ factor(maxEducLevel)+factor(female))$residuals
+summary(prueba1)
+
+prueba2 <- felm(data = dfgap, log(y_total_m)~ factor(female)|factor(maxEducLevel))
+summary(prueba2)
+
+
+# fwl manual
+
+dfgap <- dfgap%>%mutate(res_y = lm(data = dfgap, log(y_total_m)~ factor(maxEducLevel))$residuals,
+                        res_x = lm(data = dfgap, female ~ factor(maxEducLevel))$residuals)
+
+prueba3 <- lm(res_y~res_x-1,dfgap)
+summary(prueba3)
+
+
+
+
+### LOS MODELOS DE 3 SON CON LOG
+
+
 # modelo lineal - variables de control: maxEducLevel
 
 modelo_gap1 <- lm(data = dfgap, y_total_m ~ age*female+age2*female+factor(maxEducLevel) , weights = fex_c)
 summary(modelo_gap1)
 
 # modelo lineal - variables de control: maxEducLevel, factor(estrato1)
-modelo_gap2 <- lm(data = dfgap, y_total_m ~ age*female+age2*female+factor(maxEducLevel)+ factor(estrato1) , weights = fex_c)
+modelo_gap2 <- lm(data = dfgap, log(y_total_m)~ age*female+age2*female+factor(maxEducLevel)+ factor(estrato1) , weights = fex_c)
 summary(modelo_gap1)
+
+
 
 # modelo lineal - variables de control: maxEducLevel, factor(estrato1)
 modelo_gap3 <- lm(data = dfgap, y_total_m ~ age*female+age2*female+factor(maxEducLevel)+ factor(estrato1) , weights = fex_c)
@@ -701,19 +784,50 @@ p_load(tidyverse, fabricatr, stargazer)
 # set/crear seed para reproducibilidad
 set.seed(101010)
 
+
+
+# read_csv(file):  cargar database
+df_ml <- read.csv("datafiltrada.csv")
+
+
+
+
+# pre-processing
+df_ml%>%select(directorio)%>%head(10)
+
+df_ml_1 <- df_ml%>%group_by(directorio)%>%mutate(mean_y_ingLab_m= mean(y_ingLab_m, na.rm=TRUE))
+df_ml_1$y_ingLab_m_def <- df_ml_1$y_ingLab_m
+df_ml_1$y_ingLab_m_def[which(is.na(df_ml_1$y_ingLab_m_def)==TRUE)] <- df_ml_1$mean_y_ingLab_m[which(is.na(df_ml_1$y_ingLab_m_def)==TRUE)]
+
+df_ml$y_ingLab_m_def <- df_ml_1$y_ingLab_m_def
+
 # crear dataframe para fit/train el modelo
 
-df_ml <- df2%>%mutate(holdout= as.logical(1:nrow(df2)%in%sample(nrow(df2), nrow(df2)*.3)) )
+df_ml <- df_ml%>%mutate(holdout=as.logical(1:nrow(df_ml) %in% sample(nrow(df_ml), nrow(df_ml)*0.3)))
+
+
+
+# split dataset en train-set y test-set para entrenar el modelo y realizar predicciones
 test_set <- df_ml[df_ml$holdout==T,]
 train_set <- df_ml[df_ml$holdout==F,]
 
 
 # contruir el modelo dummy/naive especificacion
 
-spec1 <- lm()
 
 
-#Probemos variables
-is.na(df2$impa)%>%table()
-is.na(df2$impaes)%>%table()
-table(df2$cclasnr2)
+# fit/train ajustar el modelo
+spec1 <- lm(y_ingLab_m_def~age+age2, data = train_set)
+summary(spec1)
+
+
+# predict: predecir los valores de nuestro modelo con test-set
+
+test_set$spec1 <- predict(spec1, newdata = test_set)
+with(test_set, mean(y_ingLab_m_def-spec1)^2 )
+
+
+
+
+
+
