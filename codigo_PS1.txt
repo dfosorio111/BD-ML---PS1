@@ -227,7 +227,7 @@ ggplot(df2, aes(x = age, y = inglabo_hat_nolog/1000))+
   geom_text(aes(x=51.2, label="\nRango máximo=51.2", y=1000), colour="red", angle=90)+
   theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
 
-
+  
 
 
 
@@ -481,7 +481,7 @@ ggplot(df2, aes(x = age, y = log(inglaboFem_hat_m), group=as.factor(female), col
   theme_classic()+
   theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )+
   scale_colour_manual(values=c('0'='blue', '1'='red'), label= c('0'='Hombre', '1'='Mujer') )
-
+  
 
 
 
