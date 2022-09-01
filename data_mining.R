@@ -1,5 +1,6 @@
 #Diego Osorio, Samuel Malkún y Daniel Franco.
 
+
 #Set de preguntas
 ######Punto 2
 #Log o no, si utilizamos log borrar NA o qué hacer?
@@ -19,7 +20,10 @@
 rm(list=ls())
 
 #Establecer directorio de trabajo
+#Directorio de Samu
 setwd("~/Desktop/Big Data/Repositorios/BD-ML---PS1")
+#Directorio de Daniel
+setwd("C:/Users/danie/OneDrive/Escritorio/Uniandes/PEG/Big Data and Machine Learning/BD-ML---PS1")
 
 
 
@@ -206,19 +210,35 @@ output_boot11 <- t(rbind(boot11$t0, apply(boot11$t, 2, function(x) sd(x))))
 alpha <- 0.05
 age_peak_min_nolog <- output_boot11[1,1]-qnorm(1-(alpha/2))*output_boot11[1,2]
 age_peak_max_nolog <- output_boot11[1,1]+qnorm(1-(alpha/2))*output_boot11[1,2]
+#Guardar los betas
+b1_1 <- boot1$t0[1]
+b2_1 <- boot1$t0[2]
+b3_1 <- boot1$t0[3]
+
+#Betas máximos
+b1_1_max <- boot1$t0[1]+qnorm(1-(alpha/2))*output_boot1[1,2]
+b2_1_max <- boot1$t0[2]+qnorm(1-(alpha/2))*output_boot1[2,2]
+b3_1_max <- boot1$t0[3]+qnorm(1-(alpha/2))*output_boot1[3,2]
+
+#Betas mínimos
+b1_1_min <- boot1$t0[1]-qnorm(1-(alpha/2))*output_boot1[1,2]
+b2_1_min <- boot1$t0[2]-qnorm(1-(alpha/2))*output_boot1[2,2]
+b3_1_min <- boot1$t0[3]-qnorm(1-(alpha/2))*output_boot1[3,2]
 
 
+df2 <- df2%>%mutate(inglabo_hat_nolog = b1_1+b2_1*age+b3_1*age2)
+df2 <- df2%>%mutate(inglabo_hat_nolog_max = b1_1_max+b2_1_max*age+b3_1_max*age2)
+df2 <- df2%>%mutate(inglabo_hat_nolog_min = b1_1_min+b2_1_min*age+b3_1_min*age2)
 
-df2 <- df2%>%mutate(inglabo_hat_nolog = boot1$t0[1]+boot1$t0[2]*age+boot1$t0[3]*age2)
-
-
-ggplot(df2, aes(x = age, y = inglabo_hat_nolog/1000))+
-  geom_line()+
+#Con intervalos de los betas
+ggplot(df2)+
+  geom_line(mapping = aes(x = age, y = inglabo_hat_nolog_max/1000))+
+  geom_line(mapping = aes(x = age, y = inglabo_hat_nolog_min/1000))+
+  geom_line(mapping = aes(x = age, y = inglabo_hat_nolog/1000))+
   ggtitle("Perfil ingreso laboral y edad")+
   xlab("Edad")+
   ylab("Ingreso laboral estimado en miles")+
   theme_classic()+
-  ylim(200,2500)+
   geom_vline(xintercept = age_peak_min_nolog, linetype="dotted", color = "red", size=1)+
   geom_vline(xintercept = age_peak_max_nolog, linetype="dotted", color = "red", size=1)+
   geom_vline(xintercept = output_boot11[1,1], linetype="dotted", color = "blue", size=1)+
@@ -227,7 +247,20 @@ ggplot(df2, aes(x = age, y = inglabo_hat_nolog/1000))+
   geom_text(aes(x=51.2, label="\nRango máximo=51.2", y=1000), colour="red", angle=90)+
   theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
 
-
+#Sin intervalos de los betas
+ggplot(df2)+
+  geom_line(mapping = aes(x = age, y = inglabo_hat_nolog/1000))+
+  ggtitle("Perfil ingreso laboral y edad")+
+  xlab("Edad")+
+  ylab("Ingreso laboral estimado en miles")+
+  theme_classic()+
+  geom_vline(xintercept = age_peak_min_nolog, linetype="dotted", color = "red", size=1)+
+  geom_vline(xintercept = age_peak_max_nolog, linetype="dotted", color = "red", size=1)+
+  geom_vline(xintercept = output_boot11[1,1], linetype="dotted", color = "blue", size=1)+
+  geom_text(aes(x=48, label="\nEdad pico=48.5 ", y=1000), colour="blue", angle=90)+
+  geom_text(aes(x=45.8, label="\nRango minimo=45.8", y=1000), colour="red", angle=90)+
+  geom_text(aes(x=51.2, label="\nRango máximo=51.2", y=1000), colour="red", angle=90)+
+  theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
 
 
 
@@ -242,7 +275,7 @@ output_boot2 <- t(rbind(boot2$t0, apply(boot2$t, 2, function(x) sd(x))))
 
 eta.fn_22<-function(data,index){
   
-  f<-lm(log(y_ingLab_m~age+age2), data = df2, weights = fex_c, subset = index)
+  f<-lm(log(y_ingLab_m)~age+age2, data = df2, weights = fex_c, subset = index)
   coefs_22 <- f$coefficients
   b2<-coefs_22[2]
   b3<-coefs_22[3]
@@ -257,13 +290,60 @@ boot22 <- boot(df2, eta.fn_22, R = 1000)
 output_boot22 <- t(rbind(boot22$t0, apply(boot22$t, 2, function(x) sd(x))))  
 
 
-
 alpha <- 0.05
-age_peak_min_log <- output_boot22[1,1]-qnorm(1-(alpha/2))*output_boot22[1,2]
+age_peak_min_log<- output_boot22[1,1]-qnorm(1-(alpha/2))*output_boot22[1,2]
 age_peak_max_log <- output_boot22[1,1]+qnorm(1-(alpha/2))*output_boot22[1,2]
+#Guardar los betas
+b1_2 <- boot2$t0[1]
+b2_2 <- boot2$t0[2]
+b3_2 <- boot2$t0[3]
+
+#Betas máximos
+b1_2_max <- boot2$t0[1]+qnorm(1-(alpha/2))*output_boot2[1,2]
+b2_2_max <- boot2$t0[2]+qnorm(1-(alpha/2))*output_boot2[2,2]
+b3_2_max <- boot2$t0[3]+qnorm(1-(alpha/2))*output_boot2[3,2]
+
+#Betas mínimos
+b1_2_min <- boot2$t0[1]-qnorm(1-(alpha/2))*output_boot2[1,2]
+b2_2_min <- boot2$t0[2]-qnorm(1-(alpha/2))*output_boot2[2,2]
+b3_2_min <- boot2$t0[3]-qnorm(1-(alpha/2))*output_boot2[3,2]
 
 
+df2 <- df2%>%mutate(inglabo_hat_log = exp(b1_2+b2_2*age+b3_2*age2))
+df2 <- df2%>%mutate(inglabo_hat_log_max = exp(b1_2_max+b2_2_max*age+b3_2_max*age2))
+df2 <- df2%>%mutate(inglabo_hat_log_min = exp(b1_2_min+b2_2_min*age+b3_2_min*age2))
 
+#Con intervalos de los betas
+ggplot(df2)+
+  geom_line(mapping = aes(x = age, y = log(inglabo_hat_log_max)))+
+  geom_line(mapping = aes(x = age, y = log(inglabo_hat_log_min)))+
+  geom_line(mapping = aes(x = age, y = log(inglabo_hat_log)))+
+  ggtitle("Perfil ingreso laboral y edad")+
+  xlab("Edad")+
+  ylab("logaritmo del Ingreso laboral estimado")+
+  theme_classic()+
+  geom_vline(xintercept = age_peak_min_log, linetype="dotted", color = "red", size=1)+
+  geom_vline(xintercept = age_peak_max_log, linetype="dotted", color = "red", size=1)+
+  geom_vline(xintercept = output_boot22[1,1], linetype="dotted", color = "blue", size=1)+
+  geom_text(aes(x=43.1, label="\nEdad pico=43.1 ", y=12), colour="blue", angle=90)+
+  geom_text(aes(x=42.3, label="\nRango minimo=42.3", y=12), colour="red", angle=90)+
+  geom_text(aes(x=43.9, label="\nRango máximo=43.9", y=12), colour="red", angle=90)+
+  theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
+
+#Sin intervalos de los betas
+ggplot(df2)+
+  geom_line(mapping = aes(x = age, y = log(inglabo_hat_log)))+
+  ggtitle("Perfil ingreso laboral y edad")+
+  xlab("Edad")+
+  ylab("logaritmo del Ingreso laboral estimado")+
+  theme_classic()+
+  geom_vline(xintercept = age_peak_min_log, linetype="dotted", color = "red", size=1)+
+  geom_vline(xintercept = age_peak_max_log, linetype="dotted", color = "red", size=1)+
+  geom_vline(xintercept = output_boot22[1,1], linetype="dotted", color = "blue", size=1)+
+  geom_text(aes(x=43.1, label="\nEdad pico=43.1 ", y=12), colour="blue", angle=90)+
+  geom_text(aes(x=42.3, label="\nRango minimo=42.3", y=12), colour="red", angle=90)+
+  geom_text(aes(x=43.9, label="\nRango máximo=43.9", y=12), colour="red", angle=90)+
+  theme(plot.title = element_text(hjust = 0.5, size = 20), axis.title.x = element_text(hjust = 0.5, size = 16), axis.title.y = element_text(hjust = 0.5, size = 16), axis.text = element_text(size = 14) )
 
 
 #Sacar la tabla
@@ -406,7 +486,7 @@ summary(p3m8)
 
 # bootstrap para p3m7 
 eta.fn_p3m7<-function(data,index){
-  coef(lm(log(inglabo) ~ female*age+female*age2, data = df2%>%subset(inglabo>0), weights = fex_c, subset = index))
+  coef(lm(log(y_ingLab_m) ~ female*age+female*age2, data = df2, weights = fex_c, subset = index))
 }
 
 # boot(data, eta_func, R=N)
@@ -474,7 +554,7 @@ df2 <- df2%>%mutate(inglaboFem_hat_m = exp(bootp3m7$t0[1]+bootp3m7$t0[2]*female+
 # gráfico solo con valores predichos g5
 ggplot(df2, aes(x = age, y = log(inglaboFem_hat_m), group=as.factor(female), color=as.factor(female))  ) +
   geom_point()+
-  ggtitle("Ingreso total según la edad, por sexo")+
+  ggtitle("Ingreso laboral según la edad, por sexo")+
   xlab("Edad")+
   labs(colour = "Sexo")+
   ylab("Logaritmo del ingreso total")+
@@ -633,4 +713,7 @@ train_set <- df_ml[df_ml$holdout==F,]
 spec1 <- lm()
 
 
-
+#Probemos variables
+is.na(df2$impa)%>%table()
+is.na(df2$impaes)%>%table()
+table(df2$cclasnr2)
