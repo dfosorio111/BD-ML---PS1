@@ -803,16 +803,60 @@ df_ml$y_ingLab_m_def <- df_ml_1$y_ingLab_m_def
 
 # crear dataframe para fit/train el modelo
 
-df_ml <- df_ml%>%mutate(holdout=as.logical(1:nrow(df_ml) %in% sample(nrow(df_ml), nrow(df_ml)*0.3)))
+df_ml <- df_ml%>%subset(is.na(y_ingLab_m)==FALSE)
 
+id_train <- sample(1:nrow(df_ml), size=0.7*nrow(df_ml), replace=FALSE)
 
 
 # split dataset en train-set y test-set para entrenar el modelo y realizar predicciones
-test_set <- df_ml[df_ml$holdout==T,]
-train_set <- df_ml[df_ml$holdout==F,]
+test_set <- df_ml[-id_train,]
+train_set <- df_ml[id_train,]
+
+# split base en train-set y test-set
+
+y_train <- select(train_set, y_ingLab_m)
+x_train <- select(train_set, age, age2, female)
+
+y_test <- select(test_set, y_ingLab_m)
+x_test <- select(test_set, age, age2, female)
 
 
-# contruir el modelo dummy/naive especificacion
+# fit/train modelo con train-set
+
+# regresion lineal
+
+train_base <-cbind(y_train,x_train)
+modelo1 <- lm(y_ingLab_m~age*female+age2*female, data = train_base)
+summary(modelo1)
+
+
+# prediccion
+y_predict_train <- predict(modelo1, newdata = x_train)
+y_predict_test <- predict(modelo1, newdata = x_test)
+
+
+# metricas de evaluacion
+
+# Métricas dentro y fuera de muestra. Paquete MLmetrics
+r2_train <- R2_Score(y_pred = y_predict_train, y_true = y_train$y_ingLab_m)
+rmse_train <- RMSE(y_pred = y_predict_train, y_true = y_train$y_ingLab_m)
+
+
+r2_test <- R2_Score(y_pred = y_predict_test, y_true = y_test)
+rmse_test <- RMSE(y_pred = exp(y_hat_out1), y_true = exp(y_test))
+
+resultados <- data.frame(Modelo = "Regresión lineal", 
+                         Muestra = "Dentro",
+                         R2_Score = r2_in1, RMSE = rmse_in1) %>%
+  rbind(data.frame(Modelo = "Regresión lineal", 
+                   Muestra = "Fuera",
+                   R2_Score = r2_out1, RMSE = rmse_out1))
+
+
+plot(lm(y_ingLab_m~age*female+age2*female, data = train_base))
+
+
+
 
 
 
@@ -825,6 +869,11 @@ summary(spec1)
 
 test_set$spec1 <- predict(spec1, newdata = test_set)
 with(test_set, mean(y_ingLab_m_def-spec1)^2 )
+
+
+
+
+
 
 
 
