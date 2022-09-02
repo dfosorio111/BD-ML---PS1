@@ -34,7 +34,7 @@ set.seed(1000)
 require(pacman)
 p_load(tidyverse, # contiene las librerías ggplot, dplyr...
        rvest, data.table, dplyr, skimr, # summary data
-       caret, rio, vtable, stargazer, ggplot2, boot, MLmetrics, lfe) # web-scraping
+       caret, rio, vtable, stargazer, ggplot2, boot, MLmetrics, lfe, tidyverse, fabricatr, stargazer) # web-scraping
 
 
 #Instalar paquetes
@@ -774,16 +774,12 @@ bootgap6 <- boot(dfgap2, eta.fn_gap6, R = 1000)
 
 bootgap6
 
+
 ## Punto 4: Prediction and Performance Evaluation
 # prediction, overfitting and cross-val
 
-# split database into test-set and test-set
-
-p_load(tidyverse, fabricatr, stargazer)
-
 # set/crear seed para reproducibilidad
 set.seed(101010)
-
 
 
 # read_csv(file):  cargar database
@@ -814,69 +810,212 @@ train_set <- df_ml[id_train,]
 
 # split base en train-set y test-set
 
-y_train <- select(train_set, y_ingLab_m)
-x_train <- select(train_set, age, age2, female)
+y_train1 <- select(train_set, y_ingLab_m)
+x_train1 <- select(train_set, age, age2, female)
+y_test1 <- select(test_set, y_ingLab_m)
+x_test1 <- select(test_set, age, age2, female)
 
-y_test <- select(test_set, y_ingLab_m)
-x_test <- select(test_set, age, age2, female)
+
+
+y_train2 <- select(train_set, y_ingLab_m)
+x_train2 <- select(train_set, age, age2)
+y_test2 <- select(test_set, y_ingLab_m)
+x_test2 <- select(test_set, age, age2)
+
+# con log
+y_train3 <- select(train_set, y_ingLab_m)
+x_train3 <- select(train_set, age, age2)
+y_test3 <- select(test_set, y_ingLab_m)
+x_test3 <- select(test_set, age, age2)
+
+#
+
+y_train4 <- select(train_set, y_ingLab_m)
+x_train4 <- select(train_set, age, age2)
+y_test4 <- select(test_set, y_ingLab_m)
+x_test4 <- select(test_set, age, age2)
+
+
+y_train4 <- select(train_set, y_ingLab_m)
+x_train4 <- select(train_set, age, age2)
+y_test4 <- select(test_set, y_ingLab_m)
+x_test4 <- select(test_set, age, age2)
+
+y_train5 <- select(train_set, y_total_m)
+x_train5 <- select(train_set, age, age2, female,factor(maxEducLevel))
+y_test5 <- select(test_set, y_total_m)
+x_test5 <- select(test_set, age, age2, female,factor(maxEducLevel))
+
 
 
 # fit/train modelo con train-set
 
 # regresion lineal
 
-train_base <-cbind(y_train,x_train)
+train_base <-cbind(y_train1,x_train1)
 modelo1 <- lm(y_ingLab_m~age*female+age2*female, data = train_base)
+modelo2 <- lm(y_ingLab_m~age+age2, data = train_base)
+modelo3 <- lm(log(y_ingLab_m)~age+age2, data= train_base)
+
+modelo4 <- lm(inglabo~age+age2, data=train_base)
+modelo5 <- lm(y_total_m ~ age*female+age2*female+factor(maxEducLevel),  data=train_base)
+modelo6 <- lm(y_total_m ~ age*female+age2*female+factor(maxEducLevel)+ factor(estrato1), data=train_base)
+
+
+
+
 summary(modelo1)
 
 
 # prediccion
-y_predict_train <- predict(modelo1, newdata = x_train)
-y_predict_test <- predict(modelo1, newdata = x_test)
+y_predict_train1 <- predict(modelo1, newdata = x_train1)
+y_predict_test1 <- predict(modelo1, newdata = x_test1)
+
+y_predict_train2 <- predict(modelo2, newdata = x_train2)
+y_predict_test2 <- predict(modelo2, newdata = x_test2)
+
+y_predict_train3 <- predict(modelo3, newdata = x_train3)
+y_predict_test3 <- predict(modelo3, newdata = x_test3)
+
+y_predict_train4 <- predict(modelo4, newdata = x_train4)
+y_predict_test4 <- predict(modelo4, newdata = x_test4)
+
+y_predict_train5 <- predict(modelo5, newdata = x_train5)
+y_predict_test5 <- predict(modelo5, newdata = x_test5)
 
 
-# metricas de evaluacion
+
+
+
+# metricas de evaluacion: predictive performance
 
 # Métricas dentro y fuera de muestra. Paquete MLmetrics
-r2_train <- R2_Score(y_pred = y_predict_train, y_true = y_train$y_ingLab_m)
-rmse_train <- RMSE(y_pred = y_predict_train, y_true = y_train$y_ingLab_m)
+# discusion sobre la ML metric escogida y porqué
+
+r2_train1 <- R2_Score(y_pred = y_predict_train1, y_true = y_train1$y_ingLab_m)
+rmse_train1 <- RMSE(y_pred = y_predict_train1, y_true = y_train1$y_ingLab_m)
+mape_train1 <- MAPE(y_pred = y_predict_train1, y_true = y_train1$y_ingLab_m)
 
 
-r2_test <- R2_Score(y_pred = y_predict_test, y_true = y_test)
-rmse_test <- RMSE(y_pred = exp(y_hat_out1), y_true = exp(y_test))
+r2_test1 <- R2_Score(y_pred = y_predict_test1, y_true = y_test1$y_ingLab_m)
+rmse_test1 <- RMSE(y_pred = y_predict_test1, y_true = y_test1$y_ingLab_m)
+mape_test1 <- MAPE(y_pred = y_predict_test1, y_true = y_test1$y_ingLab_m)
 
-resultados <- data.frame(Modelo = "Regresión lineal", 
-                         Muestra = "Dentro",
-                         R2_Score = r2_in1, RMSE = rmse_in1) %>%
+resultados_ml_metrics1 <- data.frame(Modelo = "Regresión lineal", 
+                         Muestra = "Train-set",
+                         R2_Score = r2_train1, RMSE = rmse_train1,MAPE=mape_train1) %>%
   rbind(data.frame(Modelo = "Regresión lineal", 
-                   Muestra = "Fuera",
-                   R2_Score = r2_out1, RMSE = rmse_out1))
+                   Muestra = "Test-set",
+                   R2_Score = r2_test, RMSE = rmse_test, MAPE=mape_test1))
 
 
-plot(lm(y_ingLab_m~age*female+age2*female, data = train_base))
+r2_train2 <- R2_Score(y_pred = y_predict_train2, y_true = y_train2$y_ingLab_m)
+rmse_train2 <- RMSE(y_pred = y_predict_train2, y_true = y_train2$y_ingLab_m)
+mape_train2 <- MAPE(y_pred = y_predict_train2, y_true = y_train2$y_ingLab_m)
 
 
+r2_test2 <- R2_Score(y_pred = y_predict_test2, y_true = y_test2$y_ingLab_m)
+rmse_test2 <- RMSE(y_pred = y_predict_test2, y_true = y_test2$y_ingLab_m)
+mape_test2 <- MAPE(y_pred = y_predict_test2, y_true = y_test2$y_ingLab_m)
 
-
-
-
-# fit/train ajustar el modelo
-spec1 <- lm(y_ingLab_m_def~age+age2, data = train_set)
-summary(spec1)
-
-
-# predict: predecir los valores de nuestro modelo con test-set
-
-test_set$spec1 <- predict(spec1, newdata = test_set)
-with(test_set, mean(y_ingLab_m_def-spec1)^2 )
-
-
+resultados_ml_metrics2 <- data.frame(Modelo = "Regresión lineal", 
+                                     Muestra = "Train-set",
+                                     R2_Score2 = r2_train2, RMSE = rmse_train2, MAPE=mape_train2) %>%
+  rbind(data.frame(Modelo = "Regresión lineal", 
+                   Muestra = "Test-set",
+                   R2_Score = r2_test2, RMSE = rmse_test2, MAPE=mape_test2))
 
 
 
 
+# outliers: para la spec con minimo error de prediccion (rmse,r2)
+
+influence_m1 <- lm.influence(modelo1)
+summary(influence_m1)
+
+plot(modelo1)
+
+hist(influence_m1$hat, breaks = 1000)
+
+# h maximo
+which.max(influence_m1$hat)
+
+influence_m1$hat[2722]
+
+influence_m1$hat%>%head(10)
+
+hatvalues(modelo1)
+
+# LOO: Leave-one out Validation, para las 2 specs con minimo error de prediccion (rmse,r2)
+
+
+modelo1_loo <- train(y_ingLab_m~age*female+age2*female, data=df_ml,
+                    trControl = trainControl(method="cv", number=nrow(df_ml)),
+                    method="lm")
+summary(modelo1_loo)
+
+
+# calculo 'manual' mse y rmse de LOO cross-val
+
+mse_loo1 <- rep(0,nrow(df_ml))
+
+
+for (i in 1:nrow(df_ml)) {
+  
+  m_temp <- lm(y_ingLab_m~age*female+age2*female, data = df_ml[-i,])
+  y_predict_temp <- predict(m_temp, newdata = df_ml[i,])
+  temp <- (y_predict_temp-df_ml$y_ingLab_m[i])^2 
+  mse_loo1[i] <- temp
+  
+}
+
+mean(mse_loo1)
+mean(sqrt(mse_loo1))
 
 
 
+
+
+# caso mini-batch
+
+# k-fold cross validation
+
+modelo1_cv <- train(y_ingLab_m~age*female+age2*female, data=df_ml,
+                    trControl = trainControl(method="cv", number=10),
+                    method="lm")
+
+summary(modelo1_cv)
+
+# df_kfold <- split(df_ml, (seq(nrow(df_ml))-1) %/% 10) 
+
+
+df_mini <- df_ml%>%head(20)
+
+
+# cross-val
+modelo_test <- train(y_ingLab_m~age*female+age2*female, data=df_mini,
+                    trControl = trainControl(method="cv", number=20),
+                    method="lm")
+
+nr <- nrow(df_mini)
+
+
+df_mini[-1,]
+
+
+mse_loo <- rep(0,20)
+
+
+for (i in 1:nrow(df_mini)) {
+  
+  m_temp <- lm(y_ingLab_m~age*female+age2*female, data = df_mini[-i,])
+  y_predict_temp <- predict(m_temp, newdata = df_mini[i,])
+  temp <- (y_predict_temp-df_mini$y_ingLab_m[i])^2 
+  mse_loo[i] <- temp
+   
+}
+
+mean(mse_loo)
+mean(sqrt(mse_loo))
 
 
