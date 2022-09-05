@@ -854,7 +854,8 @@ x_test5 <- select(test_set, age, age2, female,factor(maxEducLevel))
 
 train_base <-cbind(y_train1,x_train1)
 modelo1 <- lm(y_ingLab_m~age*female+age2*female, data = train_base)
-modelo2 <- lm(y_ingLab_m~age+age2, data = train_base)
+modelo2 <- lm(log(y_ingLab_m)~age+age2, data = train_base)
+
 modelo3 <- lm(log(y_ingLab_m)~age+age2, data= train_base)
 
 modelo4 <- lm(inglabo~age+age2, data=train_base)
