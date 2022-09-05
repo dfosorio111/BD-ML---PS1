@@ -898,6 +898,7 @@ bootpmanual3 <- boot(df2_3, eta.fn_manual3, R = 1000)
 bootpmanual3
 
 
+
 #Descargar paquetes
 set.seed(1000)
 require(pacman)
@@ -1448,53 +1449,51 @@ u <- log(y_test10$y_def_2) - y_predict_test10
 h <- lm.influence(lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int) + p6426+ p6426^2, data = test_base10))$hat   
 
 alpha <- u/(1-h)
-
+summary(alpha)
 
 hist(u, breaks = 100)
 sd(u)
 mean(u)
-summary(u)
+summary(alpha)
 
 hist(alpha, breaks = 100)
 sd(alpha)
 mean(alpha)
-summary(alpha)
 
 hist(h, breaks = 100)
 sd(h)
 mean(h)
-summary(h)
+
 
 # LOO: k-validation
 # LOO: Leave-one out Validation, para las 2 specs con minimo error de prediccion (rmse,r2)
 
 
 # LLO modelo 9
-modelo9_loo <- train(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int), data = test_base9,
+modelo8_loo <- train(lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1), data = df_ml),
                      trControl = trainControl(method="cv", number=nrow(df_ml)),
                      method="lm")
-summary(modelo9_loo)
+summary(modelo8_loo)
 
 
 # calculo 'manual' mse y rmse de LOO cross-val
 
-mse_loo9 <- rep(0,nrow(df_ml))
-
+mse_loo8 <- rep(0,nrow(df_ml))
 
 for (i in 1:nrow(df_ml)) {
   
-  m_temp <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int), data = df_ml[-i,])
+  m_temp <- lm(lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1), data = df_ml[-i,]))
   y_predict_temp <- predict(m_temp, newdata = df_ml[i,])
   temp <- (y_predict_temp-df_ml$y_ingLab_m[i])^2 
-  mse_loo9[i] <- temp
+  mse_loo8[i] <- temp
   
 }
 
-mean(mse_loo9)
-mean(sqrt(mse_loo9))
+mean(mse_loo8)
+mean(sqrt(mse_loo8))
 
 # LOO modelo 10
-modelo10_loo <- train(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int) + p6426+ p6426^2, data = train_base10,
+modelo10_loo <- train(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int) + p6426+ p6426^2, data = df_ml,
                       trControl = trainControl(method="cv", number=nrow(df_ml)),
                       method="lm")
 summary(modelo10_loo)
@@ -1516,7 +1515,6 @@ for (i in 1:nrow(df_ml)) {
 
 mean(mse_loo10)
 mean(sqrt(mse_loo10))
-
 
 
 
