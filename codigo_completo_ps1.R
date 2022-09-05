@@ -1442,7 +1442,7 @@ hatvalues(modelo10)
 test_base9 <-cbind(y_test9,x_test9)
 test_base10 <-cbind(y_test10,x_test10)
 
-# vector de error 
+# vector de residuos
 u <- log(y_test10$y_def_2) - y_predict_test10
 
 # vector diagonal de matriz h: pesos de las observacines  
@@ -1459,8 +1459,24 @@ summary(alpha)
 hist(alpha, breaks = 100)
 sd(alpha)
 mean(alpha)
+summary(alpha)
 
 hist(h, breaks = 100)
+
+# Histograma de la variable de ingreso
+
+ggplot(test_base10)+
+  geom_histogram(colour="black", fill="blue", aes(h))+
+  ggtitle("Distribución de diagonal de matriz de apalancamiento")+
+  xlab("Pesos")+
+  ylab("Frecuencia")+
+  theme_classic()+
+  theme(plot.title = element_text(hjust=0.5, size=20))
+
+ggsave("histograma.jpg")
+
+
+
 sd(h)
 mean(h)
 
