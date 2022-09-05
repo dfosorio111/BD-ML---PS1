@@ -1,29 +1,25 @@
-df_ml$seg_act <- as.factor(df_ml$seg_act)
-df_ml$sizeFirm <- as.factor(df_ml$sizeFirm)
-df2$p6426
-plot(df2$p6426)
-y_train9 <- select(train_set, y_def_2)
-x_train9 <- select(train_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int)
-y_test9 <- select(test_set, y_def_2)
-x_test9 <- select(test_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int)
-train_base9 <-cbind(y_train9,x_train9)
-modelo9 <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)*hoursWorkUsual+factor(ing_div_int), data = train_base9)
-y_train9 <- select(train_set, y_def_2)
-x_train9 <- select(train_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int)
-y_test9 <- select(test_set, y_def_2)
-x_test9 <- select(test_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int)
-train_base9 <-cbind(y_train9,x_train9)
-modelo9 <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int), data = train_base9)
-df_ml$ing_div_int
-count(df_ml$ing_div_int)
-df_ml%>%count(ing_div_int)
-df_ml$p7050
-df_ml$p7050
-df2 <- df2%>%mutate(seg_act = ifelse(is.na(p7090) == FALSE,1,0))
-df_ml$p7090
-df_ml$iof1
+#Punto 4
+#Establecer directorio de trabajo
+#Directorio de Samu
+setwd("~/Desktop/Big Data/Repositorios/BD-ML---PS1")
+#Directorio de Daniel
+setwd("C:/Users/danie/OneDrive/Escritorio/Uniandes/PEG/Big Data and Machine Learning/BD-ML---PS1")
+#Directorio de Diego
+setwd("C:/Users/Diego/OneDrive/Documents/GitHub/BD-ML---PS1")
+
+
+#Descargar paquetes
+set.seed(1000)
+require(pacman)
+p_load(tidyverse, # contiene las librerías ggplot, dplyr...
+       rvest, data.table, dplyr, skimr, # summary data
+       caret, rio, vtable, stargazer, ggplot2, boot, MLmetrics, lfe, tidyverse, fabricatr, stargazer,
+       Hmisc, writexl) # web-scraping
+
+
 #Importar la base de datos
 df2 <- read.csv("datafiltrada.csv")
+
 #Para la variable de interes se asignan los valores promedio del directorio a aquellos faltantes para tener más observaciones y mejorar la predicción
 df2_temp2 <- df2%>%group_by(directorio)%>%mutate(y_mean = mean(y_total_m, na.rm =TRUE))
 df2$y_mean <- df2_temp2$y_mean
@@ -35,15 +31,27 @@ is.na(df2$maxEducLevel)%>%table()
 df2_temp <- df2%>%group_by(maxEducLevel)%>%mutate(y_educ = mean(y_total_m, na.rm=TRUE))
 df2$y_educ <- df2_temp$y_educ
 df2%>%select(directorio, y_total_m, y_mean, y_educ)%>%tail(10)
+
 df2 <- df2%>%mutate(y_def = ifelse(is.na(y_total_m) == TRUE, y_mean, y_total_m))
 df2 <- df2%>%mutate(y_def_2 = ifelse(is.na(y_def) == TRUE, y_educ, y_def))
 df2%>%select(directorio, y_total_m, y_mean, y_educ, y_def, y_def_2)%>%tail(10)
+
 df2 <- df2%>%mutate(seg_act = ifelse(is.na(p7050) == FALSE,1,0))
+
+
+
 df2$relab <- ifelse(df2$relab==8, 9, df2$relab)
+
 df2 <- df2%>%mutate(hoursWorkUsual2= hoursWorkUsual^2)
 df2 <- df2%>%mutate(hoursWorkUsual3= hoursWorkUsual^3)
+
 df2 <- df2%>%mutate(ing_div_int = ifelse(iof1>0,1,0))
+
+
+
+
 is.na(df2$y_def_2)%>%table()
+
 #Revisar que ninguna variable tenga na
 is.na(df2$maxEducLevel)%>%table() #Tiene 1 na
 #relación laboral
@@ -58,12 +66,21 @@ is.na(df2$formal)%>%table() #No tiene NA
 is.na(df2$sizeFirm)%>%table() #No tiene NA
 #Segunda actividad
 is.na(df2$seg_act)%>%table() #No tiene NA
+
+
 # crear dataframe para fit/train el modelo
+
 df_ml <- df2%>%subset(is.na(maxEducLevel)==FALSE)
+
 id_train <- sample(1:nrow(df_ml), size=0.7*nrow(df_ml), replace=FALSE)
+
+
 # split dataset en train-set y test-set para entrenar el modelo y realizar predicciones
 test_set <- df_ml[-id_train,]
 train_set <- df_ml[id_train,]
+
+# split base en train-set y test-set
+
 #df_ml$female <- as.factor(df_ml$female)
 df_ml$maxEducLevel <- as.factor(df_ml$maxEducLevel)
 df_ml$relab <- as.factor(df_ml$relab)
@@ -71,442 +88,555 @@ df_ml$oficio <- as.factor(df_ml$oficio)
 df_ml$formal <- as.factor(df_ml$formal)
 df_ml$seg_act <- as.factor(df_ml$seg_act)
 df_ml$sizeFirm <- as.factor(df_ml$sizeFirm)
-y_train9 <- select(train_set, y_def_2)
-x_train9 <- select(train_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int)
-y_test9 <- select(test_set, y_def_2)
-x_test9 <- select(test_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int)
-train_base9 <-cbind(y_train9,x_train9)
-modelo9 <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int), data = train_base9)
-summary(modelo9)
-# prediccion
-y_predict_train9 <- predict(modelo9, newdata = x_train9)
-y_predict_test9 <- predict(modelo9, newdata = x_test9)
-r2_train9 <- R2_Score(y_pred = y_predict_train9, y_true = log(y_train9$y_def_2) )
-rmse_train9 <- RMSE(y_pred = y_predict_train9, y_true = log(y_train9$y_def_2))
-mape_train9 <- MAPE(y_pred = y_predict_train9, y_true = log(y_train9$y_def_2))
-r2_test9 <- R2_Score(y_pred = y_predict_test9, y_true = log(y_test9$y_def_2))
-rmse_test9 <- RMSE(y_pred = y_predict_test9, y_true = log(y_test9$y_def_2))
-mape_test9 <- MAPE(y_pred = y_predict_test9, y_true = log(y_test9$y_def_2))
-resultados_ml_metrics9 <- data.frame(Modelo = "Regresión lineal",
-Muestra = "Train-set",
-R2_Score = r2_train9, RMSE = rmse_train9,MAPE=mape_train9) %>%
-rbind(data.frame(Modelo = "Regresión lineal",
-Muestra = "Test-set",
-R2_Score = r2_test9, RMSE = rmse_test9, MAPE=mape_test9))
-write_xlsx(resultados_ml_metrics9, "Métricas de Evaluación modelo 9.xlsx")
-resultados_ml_metrics9
-df_ml$p6426
-resultados_ml_metrics9
-resultados_ml_metrics8
-resultados_ml_metrics7
-resultados_ml_metrics6
-resultados_ml_metrics5
-resultados_ml_metrics6
-resultados_ml_metrics5
-resultados_ml_metrics3
-resultados_ml_metrics2
-resultados_ml_metrics1
-?MLmetrics
-y_train10 <- select(train_set, y_def_2)
-x_train10 <- select(train_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int, p6426)
-y_test10 <- select(test_set, y_def_2)
-x_test10 <- select(test_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int, p6426)
-train_base10 <-cbind(y_train10,x_train10)
-modelo10 <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int) + p6426+ p6426^2, data = train_base10)
-summary(modelo10)
-train_base10 <-cbind(y_train10,x_train10)
-modelo10 <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int) + p6426+ p6426^2, data = train_base10)
-summary(modelo10)
-# prediccion
-y_predict_train10 <- predict(modelo10, newdata = x_train10)
-y_predict_test10 <- predict(modelo10, newdata = x_test10)
-# Métricas en el train-set y test-set.  Paquete MLmetrics
-# discusion sobre la ML metric escogida y porqué
-r2_train10 <- R2_Score(y_pred = y_predict_train10, y_true = log(y_train10$y_def_2) )
-rmse_train10 <- RMSE(y_pred = y_predict_train10, y_true = log(y_train10$y_def_2))
-mape_train10 <- MAPE(y_pred = y_predict_train10, y_true = log(y_train10$y_def_2))
-r2_test10 <- R2_Score(y_pred = y_predict_test10, y_true = log(y_test10$y_def_2))
-rmse_test10 <- RMSE(y_pred = y_predict_test10, y_true = log(y_test10$y_def_2))
-mape_test10 <- MAPE(y_pred = y_predict_test10, y_true = log(y_test10$y_def_2))
-resultados_ml_metrics10 <- data.frame(Modelo = "Regresión lineal",
-Muestra = "Train-set",
-R2_Score = r2_train10, RMSE = rmse_train10,MAPE=mape_train10) %>%
-rbind(data.frame(Modelo = "Regresión lineal",
-Muestra = "Test-set",
-R2_Score = r2_test10, RMSE = rmse_test10, MAPE=mape_test10))
-write_xlsx(resultados_ml_metrics10, "Métricas de Evaluación modelo 10.xlsx")
-resultados_ml_metrics10
-modelo10 <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int) + p6426+ p6426^2+ factor(oficio), data = train_base10)
-modelo10 <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int) + p6426+ p6426^2+ factor(oficio1), data = train_base10)
-y_train10 <- select(train_set, y_def_2)
-x_train10 <- select(train_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int, p6426)
-y_test10 <- select(test_set, y_def_2)
-x_test10 <- select(test_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int, p6426)
-train_base10 <-cbind(y_train10,x_train10)
-modelo10 <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int) + p6426+ p6426^2+ factor(oficio), data = train_base10)
-function (.data, ...)
-{
-UseMethod("select")
-}
-y_train10 <- select(train_set, y_def_2)
-x_train10 <- select(train_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int, p6426, oficio)
-y_test10 <- select(test_set, y_def_2)
-x_test10 <- select(test_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int, p6426, oficio)
-train_base10 <-cbind(y_train10,x_train10)
-modelo10 <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int) + p6426+ p6426^2+ factor(oficio), data = train_base10)
-summary(modelo10)
-# prediccion
-y_predict_train10 <- predict(modelo10, newdata = x_train10)
-y_predict_test10 <- predict(modelo10, newdata = x_test10)
-# prediccion
-y_predict_train10 <- predict(modelo10, newdata = x_train10)
-r2_train10 <- R2_Score(y_pred = y_predict_train10, y_true = log(y_train10$y_def_2) )
-rmse_train10 <- RMSE(y_pred = y_predict_train10, y_true = log(y_train10$y_def_2))
-mape_train10 <- MAPE(y_pred = y_predict_train10, y_true = log(y_train10$y_def_2))
-r2_train10
-rmse_train10
-mape_train10
-df_ml%>%count(oficio)
-y_train10 <- select(train_set, y_def_2)
-x_train10 <- select(train_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int, p6426)
-y_test10 <- select(test_set, y_def_2)
-x_test10 <- select(test_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int, p6426)
-train_base10 <-cbind(y_train10,x_train10)
-modelo10 <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int) + p6426+ p6426^2, data = train_base10)
-summary(modelo10)
-# prediccion
-y_predict_train10 <- predict(modelo10, newdata = x_train10)
-y_predict_test10 <- predict(modelo10, newdata = x_test10)
-r2_train10 <- R2_Score(y_pred = y_predict_train10, y_true = log(y_train10$y_def_2) )
-rmse_train10 <- RMSE(y_pred = y_predict_train10, y_true = log(y_train10$y_def_2))
-mape_train10 <- MAPE(y_pred = y_predict_train10, y_true = log(y_train10$y_def_2))
-r2_test10 <- R2_Score(y_pred = y_predict_test10, y_true = log(y_test10$y_def_2))
-rmse_test10 <- RMSE(y_pred = y_predict_test10, y_true = log(y_test10$y_def_2))
-mape_test10 <- MAPE(y_pred = y_predict_test10, y_true = log(y_test10$y_def_2))
-resultados_ml_metrics10 <- data.frame(Modelo = "Regresión lineal",
-Muestra = "Train-set",
-R2_Score = r2_train10, RMSE = rmse_train10,MAPE=mape_train10) %>%
-rbind(data.frame(Modelo = "Regresión lineal",
-Muestra = "Test-set",
-R2_Score = r2_test10, RMSE = rmse_test10, MAPE=mape_test10))
-write_xlsx(resultados_ml_metrics10, "Métricas de Evaluación modelo 10.xlsx")
-resultados_ml_metrics10
-prueba <- bind_rows(resultados_ml_metrics1, resultados_ml_metrics2, resultados_ml_metrics3)
-resultados_ml_metrics10prueba
-prueba
-prueba <- bind_rows(resultados_ml_metrics1, resultados_ml_metrics2, resultados_ml_metrics3,resultados_ml_metrics4, resultados_ml_metrics5, resultados_ml_metrics6, resultados_ml_metrics7, resultados_ml_metrics8, resultados_ml_metrics9, resultados_ml_metrics10 )
-prueba
-tabla_metricas <- bind_rows(resultados_ml_metrics1, resultados_ml_metrics2, resultados_ml_metrics3,resultados_ml_metrics4, resultados_ml_metrics5, resultados_ml_metrics6, resultados_ml_metrics7, resultados_ml_metrics8, resultados_ml_metrics9, resultados_ml_metrics10 )
-tabla_metricas
-View(tabla_metricas)
-View(tabla_metricas)
-tabla_metricas <- bind_rows(resultados_ml_metrics1, resultados_ml_metrics2, resultados_ml_metrics3,resultados_ml_metrics4, resultados_ml_metrics5, resultados_ml_metrics6, resultados_ml_metrics7, resultados_ml_metrics8, resultados_ml_metrics9, resultados_ml_metrics10 )
-tabla_metricas
+
+
+# plot(df_ml$inglabo, df_ml$y_total_m)
+
+
 #Primer modelo - variables de control:  maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm|
 # y_def_2: y_total_m
+
 y_train1 <- select(train_set, y_def_2)
 x_train1 <- select(train_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm)
 y_test1 <- select(test_set, y_def_2)
 x_test1 <- select(test_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm)
+
+
 train_base1 <-cbind(y_train1,x_train1)
 modelo1 <- lm(y_def_2~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual+factor(seg_act)+factor(sizeFirm), data = train_base1)
 summary(modelo1)
+
+
+
 # prediccion
 y_predict_train1 <- predict(modelo1, newdata = x_train1)
 y_predict_test1 <- predict(modelo1, newdata = x_test1)
+
+
+
+
+
+
 # metricas de evaluacion: predictive performance
+
 # Métricas en el train-set y test-set.  Paquete MLmetrics
 # discusion sobre la ML metric escogida y porqué
+
 r2_train1 <- R2_Score(y_pred = y_predict_train1, y_true = y_train1$y_def_2)
 rmse_train1 <- RMSE(y_pred = y_predict_train1, y_true = y_train1$y_def_2)
 mape_train1 <- MAPE(y_pred = y_predict_train1, y_true = y_train1$y_def_2)
+
+
 r2_test1 <- R2_Score(y_pred = y_predict_test1, y_true = y_test1$y_def_2)
 rmse_test1 <- RMSE(y_pred = y_predict_test1, y_true = y_test1$y_def_2)
 mape_test1 <- MAPE(y_pred = y_predict_test1, y_true = y_test1$y_def_2)
-resultados_ml_metrics1 <- data.frame(Modelo = "M1",
-Muestra = "Train-set",
-R2_Score = r2_train1, RMSE = rmse_train1,MAPE=mape_train1) %>%
-rbind(data.frame(Modelo = "M1",
-Muestra = "Test-set",
-R2_Score = r2_test1, RMSE = rmse_test1, MAPE=mape_test1))
+
+resultados_ml_metrics1 <- data.frame(Modelo = "Modelo 1", 
+                                     Muestra = "Train-set",
+                                     R2_Score = r2_train1, RMSE = rmse_train1,MAPE=mape_train1) %>%
+  rbind(data.frame(Modelo = "Modelo 1", 
+                   Muestra = "Test-set",
+                   R2_Score = r2_test1, RMSE = rmse_test1, MAPE=mape_test1))
+
+
 write_xlsx(resultados_ml_metrics1, "Métricas de Evaluación modelo 1.xlsx")
+
+
 stargazer(resultados_ml_metrics1, type = "html", title = "Métricas de Evaluación modelo 1", out = "mod_eval1.html")
+
+
 #Segundo modelo - variables de control:  maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm|
 # y_def_2: log(y_total_m)
+
 y_train2 <- select(train_set, y_def_2)
 x_train2 <- select(train_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm)
 y_test2 <- select(test_set, y_def_2)
 x_test2 <- select(test_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm)
+
+
 train_base2 <-cbind(y_train2,x_train2)
 modelo2 <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual+factor(seg_act)+factor(sizeFirm), data = train_base2)
 summary(modelo2)
+
+
 # prediccion
 y_predict_train2 <- predict(modelo2, newdata = x_train2)
 y_predict_test2 <- predict(modelo2, newdata = x_test2)
+
 # Métricas en el train-set y test-set.  Paquete MLmetrics
 # discusion sobre la ML metric escogida y porqué
+
 r2_train2 <- R2_Score(y_pred = y_predict_train2, y_true = log(y_train2$y_def_2) )
 rmse_train2 <- RMSE(y_pred = y_predict_train2, y_true = log(y_train2$y_def_2))
 mape_train2 <- MAPE(y_pred = y_predict_train2, y_true = log(y_train2$y_def_2))
+
+
 r2_test2 <- R2_Score(y_pred = y_predict_test2, y_true = log(y_test2$y_def_2))
 rmse_test2 <- RMSE(y_pred = y_predict_test2, y_true = log(y_test2$y_def_2))
 mape_test2 <- MAPE(y_pred = y_predict_test2, y_true = log(y_test2$y_def_2))
-resultados_ml_metrics2 <- data.frame(Modelo = "M2",
-Muestra = "Train-set",
-R2_Score = r2_train1, RMSE = rmse_train1,MAPE=mape_train1) %>%
-rbind(data.frame(Modelo = "M2",
-Muestra = "Test-set",
-R2_Score = r2_test1, RMSE = rmse_test1, MAPE=mape_test1))
+
+resultados_ml_metrics2 <- data.frame(Modelo = "Modelo 2", 
+                                     Muestra = "Train-set",
+                                     R2_Score = r2_train2, RMSE = rmse_train2,MAPE=mape_train2) %>%
+  rbind(data.frame(Modelo = "Modelo 2", 
+                   Muestra = "Test-set",
+                   R2_Score = r2_test2, RMSE = rmse_test2, MAPE=mape_test2))
+
+
 write_xlsx(resultados_ml_metrics1, "Métricas de Evaluación modelo 2.xlsx")
+
+
 #Tercer modelo - variables de control:  maxEducLevel, formal, seg_act
 # y_def_2: log(y_total_m)
+
 y_train3 <- select(train_set, y_def_2)
 x_train3 <- select(train_set, age, age2, female, maxEducLevel, formal, seg_act)
 y_test3 <- select(test_set, y_def_2)
 x_test3 <- select(test_set, age, age2, female, maxEducLevel, formal, seg_act)
+
+
 train_base3 <-cbind(y_train3,x_train3)
 modelo3 <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(formal)+factor(seg_act), data = train_base3)
 summary(modelo3)
+
+
 # prediccion
 y_predict_train3 <- predict(modelo3, newdata = x_train3)
 y_predict_test3 <- predict(modelo3, newdata = x_test3)
+
+
 # Métricas en el train-set y test-set.  Paquete MLmetrics
 # discusion sobre la ML metric escogida y porqué
+
 r2_train3 <- R2_Score(y_pred = y_predict_train3, y_true = log(y_train3$y_def_2) )
 rmse_train3 <- RMSE(y_pred = y_predict_train3, y_true = log(y_train3$y_def_2))
 mape_train3 <- MAPE(y_pred = y_predict_train3, y_true = log(y_train3$y_def_2))
+
+
 r2_test3 <- R2_Score(y_pred = y_predict_test3, y_true = log(y_test3$y_def_2))
 rmse_test3 <- RMSE(y_pred = y_predict_test3, y_true = log(y_test3$y_def_2))
 mape_test3 <- MAPE(y_pred = y_predict_test3, y_true = log(y_test3$y_def_2))
-resultados_ml_metrics3 <- data.frame(Modelo = "M3",
-Muestra = "Train-set",
-R2_Score = r2_train3, RMSE = rmse_train3,MAPE=mape_train3) %>%
-rbind(data.frame(Modelo = "M3",
-Muestra = "Test-set",
-R2_Score = r2_test3, RMSE = rmse_test3, MAPE=mape_test3))
+
+resultados_ml_metrics3 <- data.frame(Modelo = "Modelo 3", 
+                                     Muestra = "Train-set",
+                                     R2_Score = r2_train3, RMSE = rmse_train3,MAPE=mape_train3) %>%
+  rbind(data.frame(Modelo = "Modelo 3", 
+                   Muestra = "Test-set",
+                   R2_Score = r2_test3, RMSE = rmse_test3, MAPE=mape_test3))
+
+
 write_xlsx(resultados_ml_metrics3, "Métricas de Evaluación modelo 3.xlsx")
-#Cuarto modelo
+
+
+
+#Cuarto modelo 
 # y_def_2: log(y_total_m)
+
 y_train4 <- select(train_set, y_def_2)
 x_train4 <- select(train_set, age, age2)
 y_test4 <- select(test_set, y_def_2)
 x_test4 <- select(test_set, age, age2)
+
+
 train_base4 <-cbind(y_train4,x_train4)
 modelo4 <- lm(log(y_def_2)~age+age2, data = train_base4)
 summary(modelo4)
+
+
 # prediccion
 y_predict_train4 <- predict(modelo4, newdata = x_train4)
 y_predict_test4 <- predict(modelo4, newdata = x_test4)
+
+
 # Métricas en el train-set y test-set.  Paquete MLmetrics
 # discusion sobre la ML metric escogida y porqué
+
 r2_train4 <- R2_Score(y_pred = y_predict_train4, y_true = log(y_train4$y_def_2) )
 rmse_train4 <- RMSE(y_pred = y_predict_train4, y_true = log(y_train4$y_def_2))
 mape_train4 <- MAPE(y_pred = y_predict_train4, y_true = log(y_train4$y_def_2))
+
+
 r2_test4 <- R2_Score(y_pred = y_predict_test4, y_true = log(y_test4$y_def_2))
 rmse_test4 <- RMSE(y_pred = y_predict_test4, y_true = log(y_test4$y_def_2))
 mape_test4 <- MAPE(y_pred = y_predict_test4, y_true = log(y_test4$y_def_2))
-resultados_ml_metrics4 <- data.frame(Modelo = "M4",
-Muestra = "Train-set",
-R2_Score = r2_train4, RMSE = rmse_train4,MAPE=mape_train4) %>%
-rbind(data.frame(Modelo = "M4",
-Muestra = "Test-set",
-R2_Score = r2_test4, RMSE = rmse_test4, MAPE=mape_test4))
+
+resultados_ml_metrics4 <- data.frame(Modelo = "Modelo 4", 
+                                     Muestra = "Train-set",
+                                     R2_Score = r2_train4, RMSE = rmse_train4,MAPE=mape_train4) %>%
+  rbind(data.frame(Modelo = "Modelo 4", 
+                   Muestra = "Test-set",
+                   R2_Score = r2_test4, RMSE = rmse_test4, MAPE=mape_test4))
+
+
 write_xlsx(resultados_ml_metrics4, "Métricas de Evaluación modelo 4.xlsx")
-#Quinto modelo
-# y_def_2: log(y_total_m)
+
+
+#Quinto modelo 
+# y_def_2: log(y_total_m) 
+
 y_train5 <- select(train_set, y_def_2)
 x_train5 <- select(train_set, age, age2, female)
 y_test5 <- select(test_set, y_def_2)
 x_test5 <- select(test_set, age, age2, female)
+
+
 train_base5 <-cbind(y_train5,x_train5)
 modelo5 <- lm(log(y_def_2)~age*female+age2*female, data = train_base5)
 summary(modelo5)
+
+
 # prediccion
 y_predict_train5 <- predict(modelo5, newdata = x_train5)
 y_predict_test5 <- predict(modelo5, newdata = x_test5)
+
+
 # Métricas en el train-set y test-set.  Paquete MLmetrics
 # discusion sobre la ML metric escogida y porqué
+
 r2_train5 <- R2_Score(y_pred = y_predict_train5, y_true = log(y_train5$y_def_2) )
 rmse_train5 <- RMSE(y_pred = y_predict_train5, y_true = log(y_train5$y_def_2))
 mape_train5 <- MAPE(y_pred = y_predict_train5, y_true = log(y_train5$y_def_2))
+
+
 r2_test5 <- R2_Score(y_pred = y_predict_test5, y_true = log(y_test5$y_def_2))
 rmse_test5 <- RMSE(y_pred = y_predict_test5, y_true = log(y_test5$y_def_2))
 mape_test5 <- MAPE(y_pred = y_predict_test5, y_true = log(y_test5$y_def_2))
-resultados_ml_metrics5 <- data.frame(Modelo = "M5",
-Muestra = "Train-set",
-R2_Score = r2_train5, RMSE = rmse_train5,MAPE=mape_train5) %>%
-rbind(data.frame(Modelo = "M5",
-Muestra = "Test-set",
-R2_Score = r2_test5, RMSE = rmse_test5, MAPE=mape_test5))
+
+resultados_ml_metrics5 <- data.frame(Modelo = "Modelo 5", 
+                                     Muestra = "Train-set",
+                                     R2_Score = r2_train5, RMSE = rmse_train5,MAPE=mape_train5) %>%
+  rbind(data.frame(Modelo = "Modelo 5", 
+                   Muestra = "Test-set",
+                   R2_Score = r2_test5, RMSE = rmse_test5, MAPE=mape_test5))
+
+
 write_xlsx(resultados_ml_metrics5, "Métricas de Evaluación modelo 5.xlsx")
-#Sexto modelo
-# y_def_2: log(y_total_m)
+
+
+
+#Sexto modelo 
+# y_def_2: log(y_total_m) 
+
 y_train6 <- select(train_set, y_def_2)
 x_train6 <- select(train_set, female)
 y_test6 <- select(test_set, y_def_2)
 x_test6 <- select(test_set, female)
+
 train_base6 <-cbind(y_train6,x_train6)
 modelo6 <- lm(log(y_def_2)~female, data = train_base6)
 summary(modelo6)
+
+
 # prediccion
 y_predict_train6 <- predict(modelo6, newdata = x_train6)
 y_predict_test6 <- predict(modelo6, newdata = x_test6)
+
+
 # Métricas en el train-set y test-set.  Paquete MLmetrics
 # discusion sobre la ML metric escogida y porqué
+
 r2_train6 <- R2_Score(y_pred = y_predict_train6, y_true = log(y_train6$y_def_2) )
 rmse_train6 <- RMSE(y_pred = y_predict_train6, y_true = log(y_train6$y_def_2))
 mape_train6 <- MAPE(y_pred = y_predict_train6, y_true = log(y_train6$y_def_2))
+
+
 r2_test6 <- R2_Score(y_pred = y_predict_test6, y_true = log(y_test6$y_def_2))
 rmse_test6 <- RMSE(y_pred = y_predict_test6, y_true = log(y_test6$y_def_2))
 mape_test6 <- MAPE(y_pred = y_predict_test6, y_true = log(y_test6$y_def_2))
-resultados_ml_metrics6 <- data.frame(Modelo = "M6",
-Muestra = "Train-set",
-R2_Score = r2_train6, RMSE = rmse_train6,MAPE=mape_train6) %>%
-rbind(data.frame(Modelo = "M6",
-Muestra = "Test-set",
-R2_Score = r2_test6, RMSE = rmse_test6, MAPE=mape_test6))
+
+resultados_ml_metrics6 <- data.frame(Modelo = "Modelo 6", 
+                                     Muestra = "Train-set",
+                                     R2_Score = r2_train6, RMSE = rmse_train6,MAPE=mape_train6) %>%
+  rbind(data.frame(Modelo = "Modelo 6", 
+                   Muestra = "Test-set",
+                   R2_Score = r2_test6, RMSE = rmse_test6, MAPE=mape_test6))
+
+
 write_xlsx(resultados_ml_metrics6, "Métricas de Evaluación modelo 6.xlsx")
+
+
 #Septimo - variables de control: hoursWorkUsual2, hoursWorkUsual3, estrato1
 # y_def_2: log(y_total_m)
+
 y_train7 <- select(train_set, y_def_2)
 x_train7 <- select(train_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1)
 y_test7 <- select(test_set, y_def_2)
 x_test7 <- select(test_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1)
+
+
 train_base7 <-cbind(y_train7,x_train7)
 modelo7 <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual+factor(seg_act)+factor(sizeFirm)+hoursWorkUsual2+hoursWorkUsual3+factor(estrato1), data = train_base7)
 summary(modelo7)
+
+
 # prediccion
 y_predict_train7 <- predict(modelo7, newdata = x_train7)
 y_predict_test7 <- predict(modelo7, newdata = x_test7)
+
 # Métricas en el train-set y test-set.  Paquete MLmetrics
 # discusion sobre la ML metric escogida y porqué
+
 r2_train7 <- R2_Score(y_pred = y_predict_train7, y_true = log(y_train7$y_def_2) )
 rmse_train7 <- RMSE(y_pred = y_predict_train7, y_true = log(y_train7$y_def_2))
 mape_train7 <- MAPE(y_pred = y_predict_train7, y_true = log(y_train7$y_def_2))
+
+
 r2_test7 <- R2_Score(y_pred = y_predict_test7, y_true = log(y_test7$y_def_2))
 rmse_test7 <- RMSE(y_pred = y_predict_test7, y_true = log(y_test7$y_def_2))
 mape_test7 <- MAPE(y_pred = y_predict_test7, y_true = log(y_test7$y_def_2))
-resultados_ml_metrics7 <- data.frame(Modelo = "M7",
-Muestra = "Train-set",
-R2_Score = r2_train7, RMSE = rmse_train7,MAPE=mape_train7) %>%
-rbind(data.frame(Modelo = "M8",
-Muestra = "Test-set",
-R2_Score = r2_test7, RMSE = rmse_test7, MAPE=mape_test7))
+
+resultados_ml_metrics7 <- data.frame(Modelo = "Modelo 7", 
+                                     Muestra = "Train-set",
+                                     R2_Score = r2_train7, RMSE = rmse_train7,MAPE=mape_train7) %>%
+  rbind(data.frame(Modelo = "Modelo 7", 
+                   Muestra = "Test-set",
+                   R2_Score = r2_test7, RMSE = rmse_test7, MAPE=mape_test7))
+
+
 write_xlsx(resultados_ml_metrics7, "Métricas de Evaluación modelo 7.xlsx")
+
+
+
 #Octavo - variables de control: hoursWorkUsual2, hoursWorkUsual3, estrato1
 # y_def_2: log(y_total_m)
+
 y_train8 <- select(train_set, y_def_2)
 x_train8 <- select(train_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1)
 y_test8 <- select(test_set, y_def_2)
 x_test8 <- select(test_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1)
+
+
 train_base8 <-cbind(y_train8,x_train8)
 modelo8 <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1), data = train_base8)
 summary(modelo8)
+
+
 # prediccion
 y_predict_train8 <- predict(modelo8, newdata = x_train8)
 y_predict_test8 <- predict(modelo8, newdata = x_test8)
+
 # Métricas en el train-set y test-set.  Paquete MLmetrics
 # discusion sobre la ML metric escogida y porqué
+
 r2_train8 <- R2_Score(y_pred = y_predict_train8, y_true = log(y_train8$y_def_2) )
 rmse_train8 <- RMSE(y_pred = y_predict_train8, y_true = log(y_train8$y_def_2))
 mape_train8 <- MAPE(y_pred = y_predict_train8, y_true = log(y_train8$y_def_2))
+
+
 r2_test8 <- R2_Score(y_pred = y_predict_test8, y_true = log(y_test8$y_def_2))
 rmse_test8 <- RMSE(y_pred = y_predict_test8, y_true = log(y_test8$y_def_2))
 mape_test8 <- MAPE(y_pred = y_predict_test8, y_true = log(y_test8$y_def_2))
-resultados_ml_metrics8 <- data.frame(Modelo = "M8",
-Muestra = "Train-set",
-R2_Score = r2_train8, RMSE = rmse_train8,MAPE=mape_train8) %>%
-rbind(data.frame(Modelo = "M8",
-Muestra = "Test-set",
-R2_Score = r2_test8, RMSE = rmse_test8, MAPE=mape_test8))
+
+resultados_ml_metrics8 <- data.frame(Modelo = "Modelo 8", 
+                                     Muestra = "Train-set",
+                                     R2_Score = r2_train8, RMSE = rmse_train8,MAPE=mape_train8) %>%
+  rbind(data.frame(Modelo = "Modelo 8", 
+                   Muestra = "Test-set",
+                   R2_Score = r2_test8, RMSE = rmse_test8, MAPE=mape_test8))
+
+
 write_xlsx(resultados_ml_metrics8, "Métricas de Evaluación modelo 8.xlsx")
+
+
 #Noveno - variables de control: hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int
 # y_def_2: log(y_total_m)
+
 y_train9 <- select(train_set, y_def_2)
 x_train9 <- select(train_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int)
 y_test9 <- select(test_set, y_def_2)
 x_test9 <- select(test_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int)
+
+
 train_base9 <-cbind(y_train9,x_train9)
 modelo9 <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int), data = train_base9)
 summary(modelo9)
+
+
 # prediccion
 y_predict_train9 <- predict(modelo9, newdata = x_train9)
 y_predict_test9 <- predict(modelo9, newdata = x_test9)
+
 # Métricas en el train-set y test-set.  Paquete MLmetrics
 # discusion sobre la ML metric escogida y porqué
+
 r2_train9 <- R2_Score(y_pred = y_predict_train9, y_true = log(y_train9$y_def_2) )
 rmse_train9 <- RMSE(y_pred = y_predict_train9, y_true = log(y_train9$y_def_2))
 mape_train9 <- MAPE(y_pred = y_predict_train9, y_true = log(y_train9$y_def_2))
+
+
 r2_test9 <- R2_Score(y_pred = y_predict_test9, y_true = log(y_test9$y_def_2))
 rmse_test9 <- RMSE(y_pred = y_predict_test9, y_true = log(y_test9$y_def_2))
 mape_test9 <- MAPE(y_pred = y_predict_test9, y_true = log(y_test9$y_def_2))
-resultados_ml_metrics9 <- data.frame(Modelo = "M9",
-Muestra = "Train-set",
-R2_Score = r2_train9, RMSE = rmse_train9,MAPE=mape_train9) %>%
-rbind(data.frame(Modelo = "M9",
-Muestra = "Test-set",
-R2_Score = r2_test9, RMSE = rmse_test9, MAPE=mape_test9))
+
+resultados_ml_metrics9 <- data.frame(Modelo = "Modelo 9", 
+                                     Muestra = "Train-set",
+                                     R2_Score = r2_train9, RMSE = rmse_train9,MAPE=mape_train9) %>%
+  rbind(data.frame(Modelo = "Modelo 9", 
+                   Muestra = "Test-set",
+                   R2_Score = r2_test9, RMSE = rmse_test9, MAPE=mape_test9))
+
+
 write_xlsx(resultados_ml_metrics9, "Métricas de Evaluación modelo 9.xlsx")
+
+
+
 #Décimo - variables de control: hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int, p6426
 # y_def_2: log(y_total_m)
+
 y_train10 <- select(train_set, y_def_2)
 x_train10 <- select(train_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int, p6426)
 y_test10 <- select(test_set, y_def_2)
 x_test10 <- select(test_set, age, age2, female, maxEducLevel, relab, formal, hoursWorkUsual, seg_act, sizeFirm, hoursWorkUsual2, hoursWorkUsual3, estrato1, ing_div_int, p6426)
+
+
 train_base10 <-cbind(y_train10,x_train10)
 modelo10 <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int) + p6426+ p6426^2, data = train_base10)
 summary(modelo10)
+
+
 # prediccion
 y_predict_train10 <- predict(modelo10, newdata = x_train10)
 y_predict_test10 <- predict(modelo10, newdata = x_test10)
+
 # Métricas en el train-set y test-set.  Paquete MLmetrics
 # discusion sobre la ML metric escogida y porqué
+
 r2_train10 <- R2_Score(y_pred = y_predict_train10, y_true = log(y_train10$y_def_2) )
 rmse_train10 <- RMSE(y_pred = y_predict_train10, y_true = log(y_train10$y_def_2))
 mape_train10 <- MAPE(y_pred = y_predict_train10, y_true = log(y_train10$y_def_2))
+
+
 r2_test10 <- R2_Score(y_pred = y_predict_test10, y_true = log(y_test10$y_def_2))
 rmse_test10 <- RMSE(y_pred = y_predict_test10, y_true = log(y_test10$y_def_2))
 mape_test10 <- MAPE(y_pred = y_predict_test10, y_true = log(y_test10$y_def_2))
-resultados_ml_metrics10 <- data.frame(Modelo = "M10",
-Muestra = "Train-set",
-R2_Score = r2_train10, RMSE = rmse_train10,MAPE=mape_train10) %>%
-rbind(data.frame(Modelo = "M10",
-Muestra = "Test-set",
-R2_Score = r2_test10, RMSE = rmse_test10, MAPE=mape_test10))
+
+resultados_ml_metrics10 <- data.frame(Modelo = "Modelo 10", 
+                                     Muestra = "Train-set",
+                                     R2_Score = r2_train10, RMSE = rmse_train10,MAPE=mape_train10) %>%
+  rbind(data.frame(Modelo = "Modelo 10", 
+                   Muestra = "Test-set",
+                   R2_Score = r2_test10, RMSE = rmse_test10, MAPE=mape_test10))
+
+
 write_xlsx(resultados_ml_metrics10, "Métricas de Evaluación modelo 10.xlsx")
+
+
 tabla_metricas <- bind_rows(resultados_ml_metrics1, resultados_ml_metrics2, resultados_ml_metrics3,resultados_ml_metrics4, resultados_ml_metrics5, resultados_ml_metrics6, resultados_ml_metrics7, resultados_ml_metrics8, resultados_ml_metrics9, resultados_ml_metrics10 )
-tabla_metricas
-View(tabla_metricas)
-View(tabla_metricas)
+write_xlsx(tabla_metricas, "Métricas de Evaluación de Especificaciones .xlsx")
+
+
+
+# outliers: modelo 10
+# outliers: para la spec con minimo error de prediccion (rmse,r2)
+
 influence_m10 <- lm.influence(modelo10)
-summary(influence_m10)
-plot(modelo10)
 summary(influence_m10$hat)
-hist(influence_m10$hat)
-hist(influence_m10$hat, breaks = 1000)
 hist(influence_m10$hat, breaks = 100)
-# h maximo
-which.max(influence_m1$hat)
+
+plot(modelo10)
+
+
+
 # h maximo
 which.max(influence_m10$hat)
-plot(modelo10)
+
+influence_m10$hat[2722]
+
+influence_m10$hat%>%head(10)
+
 hatvalues(modelo10)
-# h maximo
-which.max(influence_m10$hat)
-plot(modelo10)
-plot(modelo10)
-# h maximo
-which.max(influence_m10$hat)
-plot(modelo10)
-influence_m1$hat[10031]
-influence_m10$hat[10031]
-hist(influence_m10$hat, breaks = 1000)
-hist(influence_m10$hat, breaks = 1000)
-plot(modelo10)
-influence_m10$coefficients
-plot(influence_m10$coefficients)
-influence_m10$coefficients
-head(influence_m10$coefficients)
-tabla_metricas <- bind_rows(resultados_ml_metrics1, resultados_ml_metrics2, resultados_ml_metrics3,resultados_ml_metrics4, resultados_ml_metrics5, resultados_ml_metrics6, resultados_ml_metrics7, resultados_ml_metrics8, resultados_ml_metrics9, resultados_ml_metrics10 )
-View(tabla_metricas)
-View(tabla_metricas)
+
+
+
+test_base9 <-cbind(y_test9,x_test9)
+test_base10 <-cbind(y_test10,x_test10)
+
+# vector de error 
+u <- log(y_test10$y_def_2) - y_predict_test10
+
+# vector diagonal de matriz h: pesos de las observacines  
+h <- lm.influence(lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int) + p6426+ p6426^2, data = test_base10))$hat   
+
+alpha <- u/(1-h)
+
+
+hist(u, breaks = 100)
+sd(u)
+mean(u)
+summary(u)
+
+hist(alpha, breaks = 100)
+sd(alpha)
+mean(alpha)
+summary(alpha)
+
+hist(h, breaks = 100)
+sd(h)
+mean(h)
+summary(h)
+
+# LOO: k-validation
+# LOO: Leave-one out Validation, para las 2 specs con minimo error de prediccion (rmse,r2)
+
+
+# LLO modelo 9
+modelo9_loo <- train(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int), data = test_base9,
+                     trControl = trainControl(method="cv", number=nrow(df_ml)),
+                     method="lm")
+summary(modelo9_loo)
+
+
+# calculo 'manual' mse y rmse de LOO cross-val
+
+mse_loo9 <- rep(0,nrow(df_ml))
+
+
+for (i in 1:nrow(df_ml)) {
+  
+  m_temp <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int), data = df_ml[-i,])
+  y_predict_temp <- predict(m_temp, newdata = df_ml[i,])
+  temp <- (y_predict_temp-df_ml$y_ingLab_m[i])^2 
+  mse_loo9[i] <- temp
+  
+}
+
+mean(mse_loo9)
+mean(sqrt(mse_loo9))
+
+# LOO modelo 10
+modelo10_loo <- train(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int) + p6426+ p6426^2, data = train_base10,
+                     trControl = trainControl(method="cv", number=nrow(df_ml)),
+                     method="lm")
+summary(modelo10_loo)
+
+
+# calculo 'manual' mse y rmse de LOO cross-val
+
+mse_loo10 <- rep(0,nrow(df_ml))
+
+
+for (i in 1:nrow(df_ml)) {
+  
+  m_temp <- lm(log(y_def_2)~age*female+age2*female+factor(maxEducLevel)+factor(relab)+factor(formal)+hoursWorkUsual*female+hoursWorkUsual2*female+hoursWorkUsual3*female+factor(seg_act)+factor(sizeFirm)+factor(estrato1)+factor(ing_div_int) + p6426+ p6426^2, data = df_ml[-i,])
+  y_predict_temp <- predict(m_temp, newdata = df_ml[i,])
+  temp <- (y_predict_temp-df_ml$y_ingLab_m[i])^2 
+  mse_loo10[i] <- temp
+  
+}
+
+mean(mse_loo10)
+mean(sqrt(mse_loo10))
+
+
+
+
+
+
+# 1. Hacer LOO
+# 2. Hacer análsis de outliers
+# hacer metricas de evaluacion con oficio para train-set/predict
+# REVISAR EL INFORME
+# 4. Pasar resultados al Word
+# 5. Hacer Readme
+# Restriccion disponibilidad y precision de datos
+
